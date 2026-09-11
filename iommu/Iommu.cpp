@@ -1192,16 +1192,18 @@ Iommu::loadDeviceContext(unsigned devId, DeviceContext& dc, unsigned& cause)
 bool
 Iommu::loadProcessContext(const DeviceContext& dc, uint32_t pid,
                           ProcessContext& pc, unsigned& cause,
-                          uint64_t& faultGpa, bool& faultIsImplicit)
+                          uint64_t& faultGpa, bool& faultIsImplicit,
+                          std::vector<PbmtInfo>* pbmtInfo)
 {
   // Call the overloaded version with deviceId = 0 (unknown)
-  return loadProcessContext(dc, 0, pid, pc, cause, faultGpa, faultIsImplicit);
+  return loadProcessContext(dc, 0, pid, pc, cause, faultGpa, faultIsImplicit, pbmtInfo);
 }
 
 bool
 Iommu::loadProcessContext(const DeviceContext& dc, unsigned devId, uint32_t pid,
                           ProcessContext& pc, unsigned& cause,
-                          uint64_t& faultGpa, bool& faultIsImplicit)
+                          uint64_t& faultGpa, bool& faultIsImplicit,
+                          std::vector<PbmtInfo>* pbmtInfo)
 {
   cause = 0;
   faultGpa = 0;
@@ -1262,6 +1264,13 @@ Iommu::loadProcessContext(const DeviceContext& dc, unsigned devId, uint32_t pid,
                 }
               return false;
             }
+
+          if (pbmtInfo)
+            {
+              PbmtInfo info{ .addr = pa, .pbmt = unsigned(mmu_.lastPbmt()) };
+              pbmtInfo->push_back(info);
+            }
+
           aa = pa;
         }
 
@@ -1985,7 +1994,7 @@ Iommu::translate_(const IommuRequest& req, uint64_t& pa, unsigned& cause, bool& 
               // 14. Locate the process-context (PC) as specified in Section 2.3.2.
               ProcessContext pc;
               if (not loadProcessContext(dc, req.devId, processId, pc, cause,
-                                        pdtFaultGpa, pdtFaultIsImplicit))
+                                         pdtFaultGpa, pdtFaultIsImplicit, pbmtInfo))
                 {
                   if (cause == 20 or cause == 21 or cause == 23)
                     {
@@ -2034,11 +2043,12 @@ Iommu::translate_(const IommuRequest& req, uint64_t& pa, unsigned& cause, bool& 
   //     process then stop and report the fault. If the translation process is completed
   //     successfully then let A be the translated GPA.
   uint64_t gpa = req.iova;
-  if (not stage1Translate(iosatp, iohgatp, effPriv, dc.sxl(), pscid, req.isRead(), req.isWrite(),
-                          req.isExec(), sum, req.iova, dc.gade(), dc.sade(), dc.sbe(), gpa, cause,
-                          attribs ? &s1Attribs : nullptr))
-    return false;
+  bool ok = stage1Translate(iosatp, iohgatp, effPriv, dc.sxl(), pscid, req.isRead(), req.isWrite(),
+                            req.isExec(), sum, req.iova, dc.gade(), dc.sade(), dc.sbe(), gpa, cause,
+                            attribs ? &s1Attribs : nullptr);
   getStage1Pbmts(pbmtInfo);
+  if (not ok)
+    return false;
 
   // Count S/VS-stage page table walk event after successful first-stage translation
   // Extract context for event filtering (GSCID/GSCV for IDT=1 mode)

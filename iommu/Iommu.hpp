@@ -907,12 +907,14 @@ namespace TT_IOMMU
     /// are set to the faulting GPA and true respectively.
     bool loadProcessContext(const DeviceContext& dc, unsigned pid,
                             ProcessContext& pc, unsigned& cause,
-                            uint64_t& faultGpa, bool& faultIsImplicit);
+                            uint64_t& faultGpa, bool& faultIsImplicit,
+                            std::vector<PbmtInfo>* info);
 
     /// Overloaded version with device ID for PDT cache support
     bool loadProcessContext(const DeviceContext& dc, unsigned devId, unsigned pid,
                             ProcessContext& pc, unsigned& cause,
-                            uint64_t& faultGpa, bool& faultIsImplicit);
+                            uint64_t& faultGpa, bool& faultIsImplicit,
+                            std::vector<PbmtInfo>* info);
 
     /// Return true if this IOMMU uses wired interrupts. Return false it it uses message
     /// signaled interrupts (MSI). This is for interrupting the core in case of a fault.
@@ -1536,6 +1538,8 @@ namespace TT_IOMMU
   {
   public:
 
+    using PbmtInfo = Iommu::PbmtInfo;
+
     IommuWrapper(uint64_t addr, uint64_t size, uint64_t memorySize, uint64_t capabilities = Iommu::fullyCapable.value) :
       IommuWrapper({
         .baseAddress = addr,
@@ -1851,7 +1855,9 @@ namespace TT_IOMMU
       return result;
     }
 
-    bool loadProcessContext(const DeviceContext& dc, unsigned pid, ProcessContext& pc, unsigned& cause, uint64_t& faultGpa, bool& faultIsImplicit)
+    bool loadProcessContext(const DeviceContext& dc, unsigned pid, ProcessContext& pc,
+                            unsigned& cause, uint64_t& faultGpa, bool& faultIsImplicit,
+                            std::vector<PbmtInfo>* pbmtInfo)
     {
       auto ep = dc.extendedPart();
       fprintf(fp2_, "dc = DeviceContext(\n");
@@ -1865,10 +1871,12 @@ namespace TT_IOMMU
       fprintf(fp2_, "  0x%" PRIx64 "ull\n", ep.reserved_);
       fprintf(fp2_, ");\n");
       fprintf(fp2_, "iommu.loadProcessContext(dc, 0x%xu, pc, cause, faultGpa, faultIsImplicit);\n", pid);
-      return iommu_.loadProcessContext(dc, pid, pc, cause, faultGpa, faultIsImplicit);
+      return iommu_.loadProcessContext(dc, pid, pc, cause, faultGpa, faultIsImplicit, pbmtInfo);
     }
 
-    bool loadProcessContext(const DeviceContext& dc, unsigned devId, unsigned pid, ProcessContext& pc, unsigned& cause, uint64_t& faultGpa, bool& faultIsImplicit)
+    bool loadProcessContext(const DeviceContext& dc, unsigned devId, unsigned pid,
+                            ProcessContext& pc, unsigned& cause, uint64_t& faultGpa,
+                            bool& faultIsImplicit, std::vector<PbmtInfo>* pbmtInfo)
     {
       auto ep = dc.extendedPart();
       fprintf(fp2_, "dc = DeviceContext(\n");
@@ -1882,7 +1890,7 @@ namespace TT_IOMMU
       fprintf(fp2_, "  0x%" PRIx64 "ull\n", ep.reserved_);
       fprintf(fp2_, ");\n");
       fprintf(fp2_, "iommu.loadProcessContext(dc, 0x%xu, 0x%xu, pc, cause, faultGpa, faultIsImplicit);\n", devId, pid);
-      return iommu_.loadProcessContext(dc, devId, pid, pc, cause, faultGpa, faultIsImplicit);
+      return iommu_.loadProcessContext(dc, devId, pid, pc, cause, faultGpa, faultIsImplicit, pbmtInfo);
     }
 
     bool definePmpRegs(uint64_t pmpcfgAddr, unsigned pmpcfgCount,
