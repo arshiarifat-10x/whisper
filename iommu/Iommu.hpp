@@ -1240,7 +1240,7 @@ namespace TT_IOMMU
     /// Helper to the translate method. Collect the PBMT of the implicit access
     /// translations done by stage1Translate. This is a no-op if info is the null pointer.
     /// Collected PBMTs are appended to the given vector.
-    void getStage1Pbmts(std::vector<PbmtInfo>* info);
+    void getStage1Pbmts(std::vector<PbmtInfo>* info, bool stage1Ok);
 
     /// Helper to the translate method. Collect the PBMT of the stage2Translate.  This is
     /// a no-op if info is the null pointer. Collected PBMT is appended to the given
