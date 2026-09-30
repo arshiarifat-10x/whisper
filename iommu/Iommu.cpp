@@ -2161,7 +2161,7 @@ Iommu::getStage1Pbmts(std::vector<PbmtInfo>* pbmtInfo, bool stage1Ok)
   // Put implicit translation walk results first.
   for (const auto& walk : walks)
     {
-      if (walk.isStage2() and walk.complete())
+      if (walk.isStage2() and walk.complete() and not walk.hasException())
         {
           PbmtInfo info{ .addr = walk.result(), .pbmt = unsigned(walk.pbmt()) };
           pbmtInfo->push_back(info);
