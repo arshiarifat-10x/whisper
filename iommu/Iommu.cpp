@@ -2129,7 +2129,8 @@ Iommu::translate_(const IommuRequest& req, uint64_t& pa, unsigned& cause, bool& 
       return false;
     }
 
-  getStage2Pbmt(pbmtInfo);
+  auto s1Mode = Iosatp{iosatp}.bits_.mode_;
+  getStage2Pbmt(pbmtInfo, s1Mode); // Get PMBT of final explicit stage2 translate.
 
   // Count G-stage page table walk event after successful second-stage translation
   // Reuse context variables already computed above
@@ -2182,7 +2183,7 @@ Iommu::getStage1Pbmts(std::vector<PbmtInfo>* pbmtInfo, bool stage1Ok)
 
 
 void
-Iommu::getStage2Pbmt(std::vector<PbmtInfo>* pbmtInfo)
+Iommu::getStage2Pbmt(std::vector<PbmtInfo>* pbmtInfo, IosatpMode s1Mode)
 {
   if (not pbmtInfo)
     return;
@@ -2199,13 +2200,16 @@ Iommu::getStage2Pbmt(std::vector<PbmtInfo>* pbmtInfo)
   // The stage1 translate should have put a pbmt-info entry at end of the pbmtInfo vector
   // corresponding to the stage1 explicit translation pbmt.
   if (pbmtInfo->empty())
-    return;
+    return;  // Should not happen.
 
-  unsigned s1pbmt = pbmtInfo->back().pbmt;
-  pbmtInfo->back().addr = walk.result();   // Use SPA as requested by IOMMU DV team. 
+  if (s1Mode != IosatpMode::Bare)
+    {
+      unsigned s1pbmt = pbmtInfo->back().pbmt;
+      pbmtInfo->back().addr = walk.result();   // Use SPA as requested by IOMMU DV team. 
 
-  if (s1pbmt != 0)
-    return;  // Stage1 has priority
+      if (s1pbmt != 0)
+        return;  // Stage1 has priority
+    }
 
   pbmtInfo->back().pbmt = s2pbmt;
 }

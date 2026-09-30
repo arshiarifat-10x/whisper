@@ -1245,7 +1245,7 @@ namespace TT_IOMMU
     /// Helper to the translate method. Collect the PBMT of the stage2Translate.  This is
     /// a no-op if info is the null pointer. Collected PBMT is appended to the given
     /// vector.
-    void getStage2Pbmt(std::vector<PbmtInfo>* info);
+    void getStage2Pbmt(std::vector<PbmtInfo>* info, IosatpMode s1Mode);
 
     /// Helper to translate. Does translation but does not report fault cause on fail,
     /// instead, it sets cause and dtf to DC.tc.DTF.
