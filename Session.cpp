@@ -935,6 +935,9 @@ Session<URV>::applyCmdLineArgs(const Args& args, Hart<URV>& hart,
 	  if (not system.enableMcm(mcmLineSize, checkAll, enableCaches, enabledPpos))
 	    errors++;
 	}
+
+      if (args.ppoWarn)
+        system.mcmWarnOnPpoFail(true);
     }
 
   if (args.steesr.size() == 2)

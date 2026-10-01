@@ -429,6 +429,9 @@ namespace WdRiscv
     bool mcmDecode(Hart<URV>& hart, uint64_t time, uint64_t tag, uint64_t addr,
                    unsigned size);
 
+    /// When flag is true, issue warning instead of errors for PPO rule failure.
+    void mcmWarnOnPpoFail(bool flag);
+
     /// Perf model APIs.
     void perfApiCommandLog(FILE* log);
 

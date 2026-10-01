@@ -1483,6 +1483,15 @@ System<URV>::mcmDecode(Hart<URV>& hart, uint64_t /*time*/, uint64_t tag, uint64_
 
 template <typename URV>
 void
+System<URV>::mcmWarnOnPpoFail(bool flag)
+{
+  if (mcm_)
+    mcm_->warnOnPpoFail(flag);
+}
+
+
+template <typename URV>
+void
 System<URV>::perfApiCommandLog(FILE* log)
 {
   if (not perfApi_)

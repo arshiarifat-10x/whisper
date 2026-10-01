@@ -1255,9 +1255,10 @@ Mcm<URV>::checkCmo(Hart<URV>& hart, const McmInstr& instrB) const
       const DecodedInst& di = instrA.di_;
       if ((di.isStore() or di.isAmo()) and overlaps(instrA, instrB))
 	{
-	  cerr << "Error: PPO rule 1 failed: hart-id=" << hart.hartId() << " tag1="
+          cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+               << "PPO rule 1 failed: hart-id=" << hart.hartId() << " tag1="
 	       << instrA.tag_ << " tag2=" << instrB.tag_ << " (CMO)\n";
-	  return false;
+	  return ppoWarn_;
 	}
     }
 
@@ -3652,7 +3653,8 @@ void
 Mcm<URV>::printPpo1Error(unsigned hartId, McmInstrIx tag1, McmInstrIx tag2, uint64_t t1,
 			 uint64_t t2, uint64_t pa) const
 {
-  cerr << "Error: PPO rule 1 failed: hart-id=" << hartId << " tag1=" << tag1
+  cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+       << "PPO rule 1 failed: hart-id=" << hartId << " tag1=" << tag1
        << " tag2=" << tag2 << " time1=";
 
   if (t1 == ~uint64_t(0))
@@ -3880,9 +3882,10 @@ Mcm<URV>::ppoRule2(Hart<URV>& hart, const McmInstr& instrB) const
 
       if (instrA.memOps_.empty() or instrB.memOps_.empty())
 	{
-	  cerr << "Error: PPO Rule 2: Instruction with no memory op: hart-id="
+          cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+               << "PPO Rule 2: Instruction with no memory op: hart-id="
 	       << hart.hartId() << " tag1=" << instrA.tag_ << " tag2=" << instrB.tag_ << '\n';
-	  return false;
+	  return ppoWarn_;
 	}
       uint64_t ix0 = instrB.memOps_.front();
       uint64_t ix1 = instrA.memOps_.back();
@@ -3908,13 +3911,14 @@ Mcm<URV>::ppoRule2(Hart<URV>& hart, const McmInstr& instrB) const
 	      auto rot = remoteOp.time_;
 	      if (earlyB < lateA and earlyB <= rot and rot <= lateA)
 		{
-		  cerr << "Error: PPO Rule 2 failed: hart-id=" << hart.hartId()
+                  cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                       << "PPO Rule 2 failed: hart-id=" << hart.hartId()
 		       << " tag1=" << instrA.tag_ << " tag2=" << instrB.tag_
 		       << " store-tag=" << remoteOp.tag_ << " store-hart="
 		       << unsigned(remoteOp.hartIx_) << " time1=" << lateA
 		       << " time2=" << earlyB << " store-time=" << remoteOp.time_
 		       << " addr=0x" << std::hex << addr << std::dec << '\n';
-		  return false;
+		  return ppoWarn_;
 		}
 	    }
 	}
@@ -3984,11 +3988,12 @@ Mcm<URV>::ppoRule3(Hart<URV>& hart, const McmInstr& instrB) const
               uint64_t aTime = instrA.complete_ ? latestOpTime(instrA) : ~uint64_t(0);
               if (op.time_ < aTime)
 		{
-		  cerr << "Error: PPO rule 3 failed: hart-id=" << hart.hartId() << " tag1="
+                  cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                       << "PPO rule 3 failed: hart-id=" << hart.hartId() << " tag1="
 		       << instrA.tag_ << " tag2=" << instrB.tag_ << " time1="
 		       << aTime << " time2=" << op.time_
 		       << '\n';
-		  return false;
+		  return ppoWarn_;
 		}
 	    }
 	}
@@ -4213,11 +4218,12 @@ Mcm<URV>::checkFence(Hart<URV>& hart, const McmInstr& fence) const
 	  if (op.canceled_ or op.isRead_ or op.bypass_)
 	    continue;
 
-          cerr << "Error: PPO rule 4 failed: Hart-id=" << hart.hartId() << " fence-tag="
+          cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+               << "PPO rule 4 failed: Hart-id=" << hart.hartId() << " fence-tag="
                << fence.tag_ << " fence with predecessor-write retired while write is "
                << "pending for tag=" << tag << " at time=" << op.insertTime_ << '\n';
 
-	  return false;
+	  return ppoWarn_;
 	}
     }
 
@@ -4359,10 +4365,11 @@ Mcm<URV>::ppoRule4(Hart<URV>& hart, const McmInstr& instrB) const
 
               if (not pred.complete_ or not pred.retired_)
                 {
-                  cerr << "Error: PPO rule 4 failed: hart-id=" << hart.hartId()
+                  cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                       << "PPO rule 4 failed: hart-id=" << hart.hartId()
                        << " tag1=" << pred.tag_ << " fence-tag=" << fence.tag_
                        << " memory instruction before fence is not retired/complete\n";
-                  return false;
+                  return ppoWarn_;
                 }
 
               // Successor performs before predecessor -- Allow if successor is a load
@@ -4411,7 +4418,8 @@ Mcm<URV>::ppoRule4(Hart<URV>& hart, const McmInstr& instrB) const
 
               if (fail)
                 {
-                  cerr << "Error: PPO rule 4 failed: hart-id=" << hart.hartId()
+                  cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                       << "PPO rule 4 failed: hart-id=" << hart.hartId()
                        << " tag1=" << pred.tag_ << " tag2=" << succ.tag_
                        << " fence-tag=" << fence.tag_
                        << " time1=" << predTime << " time2=" << succTime
@@ -4419,7 +4427,8 @@ Mcm<URV>::ppoRule4(Hart<URV>& hart, const McmInstr& instrB) const
                   if (ohx != hartIx)
                     cerr << " other-hart-ix=" << ohx << " other-hart-write-time=" << oht;
                   cerr << '\n';
-                  return false;
+
+                  return ppoWarn_;
                 }
             }
         }
@@ -4524,14 +4533,15 @@ Mcm<URV>::ppoRule5(Hart<URV>& hart, const McmInstr& instrB) const
               if (not ppoRule5(hart, instrA, instrB, conflictAddr))
                 {
                   unsigned vecBytesB = getVectorLdstByteCount(hart, instrB);
-                  cerr << "Error: PPO rule 5 failed: hart-id=" << hart.hartId()
+                  cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                       << "PPO rule 5 failed: hart-id=" << hart.hartId()
                        << " tag1=" << instrA.tag_ << " tag2=" << instrB.tag_;
                   if (conflictAddr != 0)
                     cerr << std::hex << " addr=0x" << conflictAddr << std::dec;
                   if (vecBytesB > 0 and (instrB.di_.isVectorLoad() or instrB.di_.isVectorStore()))
                     cerr << " tag2-vec-bytes=" << vecBytesB;
                   cerr << '\n';
-                  return false;
+                  return ppoWarn_;
                 }
             }
         }
@@ -4553,14 +4563,15 @@ Mcm<URV>::ppoRule5(Hart<URV>& hart, const McmInstr& instrB) const
       if (not ppoRule5(hart, instrA, instrB, conflictAddr))
 	{
 	  unsigned vecBytesB = getVectorLdstByteCount(hart, instrB);
-	  cerr << "Error: PPO rule 5 failed: hart-id=" << hart.hartId()
+          cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+               << "PPO rule 5 failed: hart-id=" << hart.hartId()
 	       << " tag1=" << instrA.tag_ << " tag2=" << instrB.tag_;
 	  if (conflictAddr != 0)
 	    cerr << std::hex << " addr=0x" << conflictAddr << std::dec;
 	  if (vecBytesB > 0 and (instrB.di_.isVectorLoad() or instrB.di_.isVectorStore()))
 	    cerr << " tag2-vec-bytes=" << vecBytesB;
 	  cerr << '\n';
-	  return false;
+	  return ppoWarn_;
 	}
     }
 
@@ -4573,14 +4584,15 @@ Mcm<URV>::ppoRule5(Hart<URV>& hart, const McmInstr& instrB) const
       if (not ppoRule5(hart, instrA, instrB, conflictAddr))
 	{
 	  unsigned vecBytesB = getVectorLdstByteCount(hart, instrB);
-	  cerr << "Error: PPO rule 5 failed: hart-id=" << hart.hartId()
+          cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+               << "PPO rule 5 failed: hart-id=" << hart.hartId()
 	       << " tag1=" << instrA.tag_ << " tag2=" << instrB.tag_;
 	  if (conflictAddr != 0)
 	    cerr << std::hex << " addr=0x" << conflictAddr << std::dec;
 	  if (vecBytesB > 0 and (instrB.di_.isVectorLoad() or instrB.di_.isVectorStore()))
 	    cerr << " tag2-vec-bytes=" << vecBytesB;
 	  cerr << '\n';
-	  return false;
+	  return ppoWarn_;
 	}
     }
 
@@ -4653,14 +4665,15 @@ Mcm<URV>::ppoRule6(Hart<URV>& hart, const McmInstr& instrB) const
 	{
 	  uint64_t conflictAddr = getPpoRule6ConflictAddress(hart, instrA);
 	  unsigned vecBytesA = getVectorLdstByteCount(hart, instrA);
-	  cerr << "Error: PPO rule 6 failed: hart-id=" << hart.hartId()
+          cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+               << "PPO rule 6 failed: hart-id=" << hart.hartId()
 	       << " tag1=" << instrA.tag_ << " tag2=" << instrB.tag_;
 	  if (conflictAddr != 0)
 	    cerr << std::hex << " addr=0x" << conflictAddr << std::dec;
 	  if (vecBytesA > 0 and (instrA.di_.isVectorLoad() or instrA.di_.isVectorStore()))
 	    cerr << " tag1-vec-bytes=" << vecBytesA;
 	  cerr << '\n';
-	  return false;
+	  return ppoWarn_;
 	}
     }
 
@@ -4675,14 +4688,15 @@ Mcm<URV>::ppoRule6(Hart<URV>& hart, const McmInstr& instrB) const
 	{
 	  uint64_t conflictAddr = getPpoRule6ConflictAddress(hart, instrA);
 	  unsigned vecBytesA = getVectorLdstByteCount(hart, instrA);
-	  cerr << "Error: PPO rule 6 failed: hart-id=" << hart.hartId()
+          cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+               << "PPO rule 6 failed: hart-id=" << hart.hartId()
 	       << " tag1=" << instrA.tag_ << " tag2=" << instrB.tag_;
 	  if (conflictAddr != 0)
 	    cerr << std::hex << " addr=0x" << conflictAddr << std::dec;
 	  if (vecBytesA > 0 and (instrA.di_.isVectorLoad() or instrA.di_.isVectorStore()))
 	    cerr << " tag1-vec-bytes=" << vecBytesA;
 	  cerr << '\n';
-	  return false;
+	  return ppoWarn_;
 	}
     }
 
@@ -4797,9 +4811,10 @@ Mcm<URV>::ppoRule7(Hart<URV>& hart, const McmInstr& instrB) const
 
       if (not ppoRule7(instrA, instrB))
 	{
-	  cerr << "Error: PPO rule 7 failed: hart-id=" << hart.hartId()
+          cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+               << "PPO rule 7 failed: hart-id=" << hart.hartId()
 	       << " tag1=" << instrA.tag_ << " tag2=" << instrB.tag_ << '\n';
-	  return false;
+	  return ppoWarn_;
 	}
     }
 
@@ -4812,9 +4827,10 @@ Mcm<URV>::ppoRule7(Hart<URV>& hart, const McmInstr& instrB) const
       const auto& instrA =  instrVec.at(tag);
       if (not ppoRule7(instrA, instrB))
 	{
-	  cerr << "Error: PPO rule 7 failed: hart-id=" << hart.hartId()
+          cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+               << "PPO rule 7 failed: hart-id=" << hart.hartId()
 	       << " tag1=" << instrA.tag_ << " tag2=" << instrB.tag_ << '\n';
-	  return false;
+	  return ppoWarn_;
 	}
     }
 
@@ -4855,9 +4871,10 @@ Mcm<URV>::ppoRule8(Hart<URV>& hart, const McmInstr& instrB) const
       if (not instrA.complete_ or
           (not instrB.memOps_.empty() and earlyB <= latestOpTime(instrA)))
 	{
-	  cerr << "Error: PPO rule 8 failed: hart-id=" << hart.hartId()
+          cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+               << "PPO rule 8 failed: hart-id=" << hart.hartId()
 	       << " tag1=" << instrA.tag_ << " tag2=" << instrB.tag_ << '\n';
-	  return false;
+	  return ppoWarn_;
 	}
 
       return true;
@@ -4890,10 +4907,11 @@ Mcm<URV>::ppoRule9(Hart<URV>& hart, const McmInstr& instrB) const
       {
         if (opIx < sysMemOps_.size() and sysMemOps_.at(opIx).time_ <= addrTime)
           {
-            cerr << "Error: PPO rule 9 failed: hart-id=" << hart.hartId() << " tag1="
+            cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                 << "PPO rule 9 failed: hart-id=" << hart.hartId() << " tag1="
                  << instrB.addrProducer_ << " tag2=" << instrB.tag_
                  << " time1=" << addrTime << " time2=" << sysMemOps_.at(opIx).time_ << '\n';
-            return false;
+            return ppoWarn_;
           }
       }
 
@@ -4948,7 +4966,9 @@ Mcm<URV>::ppoRule10(Hart<URV>& hart, const McmInstr& instrB) const
               uint64_t conflictAddr = op.pa_;
               unsigned vecBytesA = getVectorLdstByteCount(hart, instrA);
               unsigned vecBytesB = getVectorLdstByteCount(hart, instrB);
-              cerr << "Error: PPO rule 10 failed: hart-id=" << hart.hartId() << " tag1="
+
+              cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                   << "PPO rule 10 failed: hart-id=" << hart.hartId() << " tag1="
                    << instrB.dataProducer_  << " tag2=" << instrB.tag_ << " time1="
                    << dataTime << " time2=" << op.time_;
               if (conflictAddr != 0)
@@ -4958,7 +4978,7 @@ Mcm<URV>::ppoRule10(Hart<URV>& hart, const McmInstr& instrB) const
               if (vecBytesB > 0 and (instrB.di_.isVectorLoad() or instrB.di_.isVectorStore()))
                 cerr << " tag2-vec-bytes=" << vecBytesB;
               cerr << '\n';
-              return false;
+              return ppoWarn_;
             }
         }
     }
@@ -5033,7 +5053,9 @@ Mcm<URV>::ppoRule10(Hart<URV>& hart, const McmInstr& instrB) const
 	      const auto& instrA_vec = instrVec.at(atag);
 	      unsigned vecBytesA = getVectorLdstByteCount(hart, instrA_vec);
 	      unsigned vecBytesB = getVectorLdstByteCount(hart, instrB);
-	      cerr << "Error: PPO rule 10 failed: hart-id=" << hart.hartId()
+
+              cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                   << "PPO rule 10 failed: hart-id=" << hart.hartId()
 		   << " tag1=" << atag << " tag2=" << instrB.tag_
                    << " data-dep-vec=v" << dataReg;
               if (atime == std::numeric_limits<uint64_t>::max())
@@ -5047,7 +5069,8 @@ Mcm<URV>::ppoRule10(Hart<URV>& hart, const McmInstr& instrB) const
 	      if (vecBytesB > 0 and (instrB.di_.isVectorLoad() or instrB.di_.isVectorStore()))
 		cerr << " tag2-vec-bytes=" << vecBytesB;
 	      cerr << '\n';
-	      return false;
+
+	      return ppoWarn_;
 	    }
 	}
     }
@@ -5091,9 +5114,10 @@ Mcm<URV>::ppoRule11(Hart<URV>& hart, const McmInstr& instrB) const
 
   if (hartData_.at(hartIx).branchTime_ and not rule11(earlyB, producerTag))
     {
-      cerr << "Error: PPO rule 11 failed (branch): hart-id=" << hart.hartId() << " tag1="
+      cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+           << "PPO rule 11 failed (branch): hart-id=" << hart.hartId() << " tag1="
            << producerTag << " tag2=" << instrB.tag_ << '\n';
-      return false;
+      return ppoWarn_;
     }
 
   // VL is control dependency for vector instructions
@@ -5108,9 +5132,10 @@ Mcm<URV>::ppoRule11(Hart<URV>& hart, const McmInstr& instrB) const
       producerTag = hartData_.at(hartIx).vlProducer_;
       if (hartData_.at(hartIx).vlTime_ and not rule11(earlyB, producerTag))
         {
-          cerr << "Error: PPO rule 11 failed (vl): hart-id=" << hart.hartId() << " tag1="
+          cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+               << "PPO rule 11 failed (vl): hart-id=" << hart.hartId() << " tag1="
                << producerTag << " tag2=" << instrB.tag_ << '\n';
-          return false;
+          return ppoWarn_;
         }
 
       if (bdi.isMasked()) // VM is control dependency for masked vector instructions
@@ -5118,14 +5143,15 @@ Mcm<URV>::ppoRule11(Hart<URV>& hart, const McmInstr& instrB) const
           producerTag = vecRegProducer(hartIx, 0);   // V0 is mask register.
           if (not rule11(earlyB, producerTag))
             {
-              cerr << "Error: PPO rule 11 failed (vm): hart-id=" << hart.hartId() << " tag1="
+              cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                   << "PPO rule 11 failed (vm): hart-id=" << hart.hartId() << " tag1="
                    << producerTag << " tag2=" << instrB.tag_ << '\n';
-              return false;
+              return ppoWarn_;
             }
         }
     }
 
-  // what about vstart?
+  // FIX: what about vstart?
 
   return true;
 }
@@ -5291,19 +5317,21 @@ Mcm<URV>::ppoRule12(Hart<URV>& hart, const McmInstr& instrB) const
 	  if (mapt != 0 and ap.isMemory() and not ap.isCanceled())
 	    if (not ap.complete_ or byteTime <= addrTime)
 	      {
-		cerr << "Error: PPO rule 12 failed: hart-id=" << hart.hartId() << " tag1="
+                cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                     << "PPO rule 12 failed: hart-id=" << hart.hartId() << " tag1="
 		     << mapt << " tag2=" << instrB.tag_ << " mtag=" << mTag
 		     << " time1=" << addrTime << " time2=" << byteTime << " dep=addr\n";
-		return false;
+		return ppoWarn_;
 	      }
 
 	  if (mdpt != 0 and dp.isMemory() and not dp.isCanceled())
 	    if (not dp.complete_ or byteTime <= dataTime)
 	      {
-		cerr << "Error: PPO rule 12 failed: hart-id=" << hart.hartId() << " tag1="
+                cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                     << "PPO rule 12 failed: hart-id=" << hart.hartId() << " tag1="
 		     << mdpt << " tag2=" << instrB.tag_ << " mtag=" << mTag
 		     << " time1=" << dataTime << " time2=" << byteTime << " dep=data\n";
-		return false;
+		return ppoWarn_;
 	      }
 	}
       else    // M is a vector store
@@ -5346,11 +5374,12 @@ Mcm<URV>::ppoRule12(Hart<URV>& hart, const McmInstr& instrB) const
 	      // Check B against A.
 	      if (not instrA.complete_ or byteTime <= aTime)
 		{
-		  cerr << "Error: PPO rule 12 failed: hart-id=" << hart.hartId() << " tag1="
+                  cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                       << "PPO rule 12 failed: hart-id=" << hart.hartId() << " tag1="
 		       << aTag << " tag2=" << instrB.tag_ << " mtag=" << mTag
 		       << " time1=" << aTime << " time2=" << byteTime << " addr2=0x"
 		       << std::hex << byteAddr << std::dec << " dep=data\n";
-		  return false;
+		  return ppoWarn_;
 		}
 
 	      if (not isIndexed)
@@ -5381,11 +5410,11 @@ Mcm<URV>::ppoRule12(Hart<URV>& hart, const McmInstr& instrB) const
 	      // Check B against AA.
 	      if (not instrAA.complete_ or byteTime <= aTime)
 		{
-                  
-		  cerr << "Error: PPO rule 12 failed: hart-id=" << hart.hartId() << " tag1="
+                  cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                       << "PPO rule 12 failed: hart-id=" << hart.hartId() << " tag1="
 		       << aTag << " tag2=" << instrB.tag_ << " mtag=" << mTag
 		       << " time1=" << aTime << " time2=" << byteTime << " dep=addr\n";
-		  return false;
+		  return ppoWarn_;
 		}
 	      break;
 	    }
@@ -5427,10 +5456,11 @@ Mcm<URV>::ppoRule13(Hart<URV>& hart, const McmInstr& instrB) const
 	if (not ap.complete_ or isBeforeInMemoryTime(instrB, ap))
 	  {
             uint64_t apTime = ap.complete_ ? latestOpTime(ap) : ~uint64_t(0);
-	    cerr << "Error: PPO rule 13 failed: hart-id=" << hart.hartId() << " tag1="
+            cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                 << "PPO rule 13 failed: hart-id=" << hart.hartId() << " tag1="
 		 << mapt << " tag2=" << instrB.tag_ << " mtag=" << mTag
 		 << " time1=" << apTime << " time2=" << earlyB << '\n';
-	    return false;
+	    return ppoWarn_;
 	  }
 
       if (instrM.di_.isVectorLoadIndexed() or instrM.di_.isVectorStoreIndexed())
@@ -5440,10 +5470,11 @@ Mcm<URV>::ppoRule13(Hart<URV>& hart, const McmInstr& instrB) const
 	      if (ipt.time_ < earlyB)
 		continue;
 
-	      cerr << "Error: PPO rule 13 failed: hart-id=" << hart.hartId() << " tag1="
+              cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                   << "PPO rule 13 failed: hart-id=" << hart.hartId() << " tag1="
 		   << ipt.tag_ << " tag2=" << instrB.tag_ << " mtag=" << mTag
 		   << " time1=" << ipt.time_ << " time2=" << earlyB << '\n';
-	      return false;
+	      return ppoWarn_;
 	    }
 	}
     }
@@ -5502,11 +5533,12 @@ Mcm<URV>::ioPpoChecks(Hart<URV>& hart, const McmInstr& instrB) const
 	  if (op.time_ < earlyB)
 	    continue;
 
-	  cerr << "Error: IO PPO rule failed: hart-id=" << hart.hartId() << " tag1="
+          cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+               << "IO PPO rule failed: hart-id=" << hart.hartId() << " tag1="
 	       << op.tag_ << " tag2=" << instrB.tag_ << " time1=" << op.time_
 	       << " time2=" << earlyB << " type=" << (isRead? "read" : "write")
 	       << '\n';
-	  return false;
+	  return ppoWarn_;
 	}
     }
 
@@ -5529,10 +5561,11 @@ Mcm<URV>::ioPpoChecks(Hart<URV>& hart, const McmInstr& instrB) const
         {
           if (instrA.memOps_.empty())
             {
-              cerr << "Error: IO PPO rule failed: hart-id=" << hart.hartId() << " tag1="
+              cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                   << "IO PPO rule failed: hart-id=" << hart.hartId() << " tag1="
                    << instrA.tag_ << " tag2=" << instrB.tag_ << " time1=inf"
                    << " time2=" << earlyWrite << " type=write\n";
-              return false;
+              return ppoWarn_;
             }
 
           uint64_t pa1 = instrA.physAddr_, pa2 = instrA.physAddr2_;
@@ -5555,10 +5588,11 @@ Mcm<URV>::ioPpoChecks(Hart<URV>& hart, const McmInstr& instrB) const
                     continue;
 
                   // Byte addr not drained in A.
-                  cerr << "Error: IO PPO rule failed: hart-id=" << hart.hartId() << " tag1="
+                  cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                       << "IO PPO rule failed: hart-id=" << hart.hartId() << " tag1="
                        << instrA.tag_ << " tag2=" << instrB.tag_ << " time1=inf"
                        << " time2=" << earlyWrite << " type=write\n";
-                  return false;
+                  return ppoWarn_;
                 }
             }
         }
@@ -5589,10 +5623,11 @@ Mcm<URV>::ioPpoChecks(Hart<URV>& hart, const McmInstr& instrB) const
                         continue;
 
                       // Byte addr not drained in A.
-                      cerr << "Error: IO PPO rule failed: hart-id=" << hart.hartId() << " tag1="
+                      cerr << (ppoWarn_ ? "Warning: " : "Error: ")
+                           << "IO PPO rule failed: hart-id=" << hart.hartId() << " tag1="
                            << instrA.tag_ << " tag2=" << instrB.tag_ << " time1=inf"
                            << " time2=" << earlyWrite << " type=write\n";
-                      return false;
+                      return ppoWarn_;
                     }
                 }
             }

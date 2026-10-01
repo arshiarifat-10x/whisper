@@ -276,6 +276,9 @@ namespace WdRiscv
       skipReadCheckEnable_ = enable;
     }
 
+    /// Return true if read data check (Whisper versus RTL) is active for the given
+    /// address. The test-bench can mark a memory region as off-limit for checking by
+    /// calling skipReadDataCheck.
     bool isReadDataCheckEnabled(uint64_t addr) const
     {
       if (skipReadCheckEnable_ and
@@ -284,6 +287,12 @@ namespace WdRiscv
         return false;
       return true;
     }
+
+    /// When flag is true, configure the checker to print warnings instead of errors for
+    /// failing PPO rule checks and to return success codes to the test-bench instead of
+    /// fail. When flag is false, failing checks result in errors and in fail codes.
+    void warnOnPpoFail(bool flag)
+    { ppoWarn_ = flag; }
 
     /// Perform PPO checks (e.g. rule 4) on pending instructions.
     bool finalChecks(Hart<URV>& hart);
@@ -1083,7 +1092,8 @@ namespace WdRiscv
 
     std::vector<bool> ppoEnabled_;
 
-    bool isTso_ = false;  // True if total-store-ordering model.
+    bool isTso_ = false;    // True if total-store-ordering model.
+    bool ppoWarn_ = false;  // True if PPO violations issue a warning instead of error.
   };
 
 }

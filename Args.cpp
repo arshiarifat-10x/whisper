@@ -230,6 +230,9 @@ Args::collectCommandLineValues(const boost::program_options::variables_map& varM
   if (varMap.count("noppo"))
     this->noPpo = true;
 
+  if (varMap.count("ppowarn"))
+    this->ppoWarn = true;
+
   if (varMap.count("triggers"))
     this->triggers = true;
 
@@ -566,6 +569,8 @@ Args::parseCmdLineArgs(std::span<char*> argv)
 	("mcm", po::bool_switch(&this->mcm),
 	 "Enable memory consistency checks. This is meaningful in server/interactive mode.")
 	("noppo",
+	 "Skip preserve program order rule check in MCM when this is used.")
+	("ppowarn",
 	 "Skip preserve program order rule check in MCM when this is used.")
 	("mcmca", po::bool_switch(&this->mcmca),
 	 "Check all bytes of the memory consistency check merge buffer. If not used "

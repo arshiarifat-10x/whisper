@@ -3485,6 +3485,13 @@ HartConfig::configHarts(System<URV>& system, bool userMode, bool verbose) const
       return false;
   system.enableTso(enableTso);
 
+  tag = "warn_on_mcm_ppo_fail";
+  bool ppoWarn = false;
+  if (config_ -> contains(tag))
+    if (not getJsonBoolean(tag, config_ -> at(tag), ppoWarn))
+      return false;
+  system.mcmWarnOnPpoFail(ppoWarn);
+
   tag = "uart";
   if (config_ -> contains(tag))
     {

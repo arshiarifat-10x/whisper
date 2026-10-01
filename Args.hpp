@@ -167,7 +167,8 @@ namespace WdRiscv
     bool elfisa = false;     // Use ELF file RISCV architecture tags to set MISA if true.
     bool unmappedElfOk = false;
     bool mcm = false;        // Memory consistency checks.
-    std::optional<bool> noPpo;      // Skip PPO checks in MCM.
+    std::optional<bool> noPpo;   // Skip PPO checks in MCM.
+    std::optional<bool> ppoWarn; // PPO rule check fail result in warning instead of error.
     bool mcmca = false;      // Memory consistency checks: check all bytes of merge buffer.
     bool dismc = false;      // Memory consistency check disable caches.
     bool perfApi = false;    // Performance model API.
