@@ -1630,7 +1630,9 @@ Iommu::translate(const IommuRequest& req, uint64_t& pa, unsigned& cause,
       if (not params_.reportExplicitPmpViolation)
         return true;
 
-      if (req.isExec() and not (isPmpExecutable(pa) and isPmaExecutable(pa)))
+      if (req.isAtsExec() and not (isPmpExecutable(pa) and isPmaExecutable(pa)))
+        cause = 1; // instruction access fault
+      else if (req.isExec() and not (isPmpExecutable(pa) and isPmaExecutable(pa)))
         cause = 1; // instruction access fault
       else if (req.isRead() and not (isPmpReadable(pa) and isPmaReadable(pa)))
         cause = 5; // load access fault
@@ -3227,7 +3229,7 @@ Iommu::atsTranslate(const IommuRequest& req, AtsResponse& response, unsigned& ca
       // only reported when the request carried an execute intent.
       response.readPerm  = attribs.read;
       response.writePerm = attribs.write;
-      response.execPerm  = attribs.exec and req.isAtsExec;
+      response.execPerm  = attribs.exec and req.isAtsExec();
       // Global is reported only for requests with a valid process id (PASID). combineStage
       // Attribs already forced it off for MSI addresses.
       response.global    = req.hasProcId and attribs.global;

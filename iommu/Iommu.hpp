@@ -381,7 +381,7 @@ namespace TT_IOMMU
     PM privMode = PM::User;   // Privilege mode
     unsigned size = 0;        // Size of access in bytes
     bool isDebug = false;     // Request is from debug interface
-    bool isAtsExec = false;   // True if ATS request is for execute privilege.
+    bool atsExec = false;     // True if ATS request is for execute permission.
 
     /// Return true if this is a translated request: iova is an SPA that is already
     /// translated and need no further translation. Return false if this an untranslated
@@ -393,19 +393,35 @@ namespace TT_IOMMU
 
     /// Return true if the request is for a read.
     bool isRead() const
-    { return type == Ttype::TransRead or type == Ttype::UntransRead or type == Ttype::PcieAts; }
+    {
+      if (isAtsExec())
+        return false;
+      return type == Ttype::TransRead or type == Ttype::UntransRead or type == Ttype::PcieAts;
+    }
 
     /// Return true if the request is for a write.
     bool isWrite() const
-    { return type == Ttype::TransWrite or type == Ttype::UntransWrite; }
+    {
+      if (isAtsExec())
+        return false;
+      return type == Ttype::TransWrite or type == Ttype::UntransWrite;
+    }
 
     /// Return true if the request is for a read-for-exec.
     bool isExec() const
-    { return type == Ttype::TransExec or type == Ttype::UntransExec; }
+    {
+      if (isAts())
+        return atsExec;
+      return type == Ttype::TransExec or type == Ttype::UntransExec;
+    }
 
     /// Return true if the request is for a PCIE address translation service.
     bool isAts() const
     { return type == Ttype::PcieAts; }
+
+    /// Return true if the request is for a PCIE address translation service for exec permission.
+    bool isAtsExec() const
+    { return isAts() and atsExec; }
 
     /// Return true if the request is for a PCIE message request.
     bool isMessage() const
