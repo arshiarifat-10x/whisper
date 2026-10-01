@@ -552,13 +552,14 @@ namespace WdRiscv
     /// isLoad is false), for addresses, for the given timing and if
     /// it matches the given data address.  Return false otherwise.
     bool matchLdStAddr(URV address, unsigned size, TriggerTiming timing, bool isLoad,
-                       PrivilegeMode mode, bool virtMode, URV& hitAddr) const;
+                       PrivilegeMode mode, bool virtMode, URV mcontext,
+                       URV& hitAddr) const;
 
     /// Return true if this trigger is enabled for loads (or stores if
     /// isLoad is false), for data, for the given timing and if it
     /// matches the given value address.  Return false otherwise.
     bool matchLdStData(URV value, TriggerTiming timing, bool isLoad,
-                       PrivilegeMode mode, bool virtMode) const;
+                       PrivilegeMode mode, bool virtMode, URV mcontext) const;
 
     /// Return true if this trigger is enabled for instruction
     /// addresses (execution), for the given timing and if it matches
@@ -837,11 +838,12 @@ namespace WdRiscv
     // Helper to public matchLdStAddr.
     template <typename M>
     bool matchLdStAddr(URV address, unsigned size, TriggerTiming timing, bool isLoad,
-                       PrivilegeMode mode, bool virtMode, URV& hitAddr) const;
+                       PrivilegeMode mode, bool virtMode, URV mcontext,
+                       URV& hitAddr) const;
 
     template <typename M>
     bool matchLdStData(URV value, TriggerTiming timing, bool isLoad,
-                       PrivilegeMode mode, bool virtMode) const;
+                       PrivilegeMode mode, bool virtMode, URV mcontext) const;
 
     template <typename M>
     bool matchInstAddr(URV address, unsigned size, TriggerTiming timing,
@@ -1005,11 +1007,12 @@ namespace WdRiscv
     /// being enabled (ie == true), then the trigger will not trip even if its condition
     /// is satisfied.
     bool ldStAddrTriggerHit(URV address, unsigned size, TriggerTiming, bool isLoad,
-                            PrivilegeMode mode, bool virtMode, bool ie, URV& hitAddr);
+                            PrivilegeMode mode, bool virtMode, bool ie, URV mcontext,
+                            URV& hitAddr);
 
     /// Similar to ldStAddrTriggerHit but for data match.
     bool ldStDataTriggerHit(URV value, TriggerTiming, bool isLoad,
-                            PrivilegeMode mode, bool virtMode, bool ie);
+                            PrivilegeMode mode, bool virtMode, bool ie, URV mcontext);
 
     /// Similar to ldStAddrTriggerHit but for instruction address.
     bool instAddrTriggerHit(URV address, unsigned size, TriggerTiming timing,

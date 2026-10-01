@@ -1285,7 +1285,9 @@ namespace WdRiscv
     bool ldStAddrTriggerHit(URV addr, unsigned size, TriggerTiming t, bool isLoad,
                             PrivilegeMode mode, bool virtMode, bool ie, URV& hitAddr)
     {
-      bool chainHit = triggers_.ldStAddrTriggerHit(addr, size, t, isLoad, mode, virtMode, ie, hitAddr);
+      bool chainHit =
+        triggers_.ldStAddrTriggerHit(addr, size, t, isLoad, mode, virtMode, ie,
+                                     mcontext(), hitAddr);
       auto tselect = peek(CsrNumber::TSELECT);
       if (triggers_.getLocalHit(tselect))
 	recordWrite(CsrNumber::TDATA1);  // Hit bit in TDATA1 changed.
@@ -1296,7 +1298,9 @@ namespace WdRiscv
     bool ldStDataTriggerHit(URV data, TriggerTiming t, bool isLoad,
                             PrivilegeMode mode, bool virtMode, bool ie)
     {
-      bool chainHit = triggers_.ldStDataTriggerHit(data, t, isLoad, mode, virtMode, ie);
+      bool chainHit =
+        triggers_.ldStDataTriggerHit(data, t, isLoad, mode, virtMode, ie,
+                                     mcontext());
       auto tselect = peek(CsrNumber::TSELECT);
       if (triggers_.getLocalHit(tselect))
 	recordWrite(CsrNumber::TDATA1);  // Hit bit in TDATA1 changed.
