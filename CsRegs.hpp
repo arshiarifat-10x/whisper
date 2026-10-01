@@ -1345,12 +1345,18 @@ namespace WdRiscv
       return chainHit;
     }
 
+    URV mcontext() const
+    {
+      const auto& csr = regs_.at(size_t(CsrNumber::MCONTEXT));
+      return csr.read();
+    }
+
     /// Make every active icount trigger count down unless it was written by the current
     /// instruction. Set the hit bit of a counted-down register if its value becomes
     /// zero
     void evaluateIcountTrigger(PrivilegeMode mode, bool virtMode, bool ie, bool skipModified)
     {
-      triggers_.evaluateIcount(mode, virtMode, ie, skipModified);
+      triggers_.evaluateIcount(mode, virtMode, ie, skipModified, mcontext());
       auto tselect = peek(CsrNumber::TSELECT);
       if (triggers_.getLocalHit(tselect))
 	recordWrite(CsrNumber::TDATA1);  // Hit bit in TDATA1 changed.
@@ -1359,7 +1365,7 @@ namespace WdRiscv
     /// Return true if a pending icount trigger can fire clearing its pending status.
     bool icountTriggerFired(PrivilegeMode mode, bool virtMode, bool ie)
     {
-      return triggers_.icountTriggerFired(mode, virtMode, ie);
+      return triggers_.icountTriggerFired(mode, virtMode, ie, mcontext());
     }
 
     /// Set pre and post to the count of "before"/"after" triggers

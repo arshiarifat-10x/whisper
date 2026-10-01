@@ -572,10 +572,37 @@ namespace WdRiscv
     bool matchInstOpcode(URV opcode, TriggerTiming timing,
                          PrivilegeMode mode, bool virtMode) const;
 
+    bool matchTextraMcontext(URV mcontext) const
+    {
+      // RV64: mhselect = bits 50:48, mhvalue = bits 63:51.
+      // RV32: mhselect = bits 25:23, mhvalue = bits 31:26.
+
+      if constexpr (sizeof(URV) == 8)
+        {
+          unsigned mhselect = unsigned((data3_ >> 48) & URV(0x7));
+
+          if (mhselect != 4)
+            return true;
+
+          URV mhvalue = (data3_ >> 51) & URV(0x1fff);
+          return mhvalue == (mcontext & URV(0x1fff));
+        }
+      else
+        {
+          unsigned mhselect = unsigned((data3_ >> 23) & URV(0x7));
+
+          if (mhselect != 4)
+            return true;
+
+          URV mhvalue = (data3_ >> 26) & URV(0x3f);
+          return mhvalue == (mcontext & URV(0x3f));
+        }
+    }
+
     /// Return true if this trigger is enabled for given mode.
     /// Return false otherwise. This is called for both
     /// instruction retire and trap scenarios.
-    bool matchInstCount(PrivilegeMode mode, bool virtMode)
+    bool matchInstCount(PrivilegeMode mode, bool virtMode, URV mcontext)
     {
       if (not data1_.isInstCount())
 	return false;  // Not an icount trigger.
@@ -597,6 +624,9 @@ namespace WdRiscv
 	return false;  // Trigger is not enabled.
 
       if (mode == PrivilegeMode::Reserved)
+        return false;
+
+      if (not matchTextraMcontext(mcontext))
         return false;
 
       return true;
@@ -994,9 +1024,9 @@ namespace WdRiscv
     /// and the associated actions is not suppressed (e.g. action is ebreak exception and
     /// interrupts are disabled), then consider the trigger as having tripped and set its
     /// hit bit to 1.
-    void evaluateIcount(PrivilegeMode mode, bool virtMode, bool ie, bool skipModifed);
+    void evaluateIcount(PrivilegeMode mode, bool virtMode, bool ie, bool skipModifed, URV mcontext);
 
-    bool icountTriggerFired(PrivilegeMode mode, bool virtMode, bool interruptEnabled);
+    bool icountTriggerFired(PrivilegeMode mode, bool virtMode, bool interruptEnabled, URV mcontext);
 
     /// Return true if any of the exception-triggers (etrigger) trips.
     bool expTriggerHit(URV cause, PrivilegeMode mode, bool virtMode, bool interruptEnabled);

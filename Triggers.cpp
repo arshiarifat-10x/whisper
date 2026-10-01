@@ -436,7 +436,7 @@ Triggers<URV>::instOpcodeTriggerHit(URV opcode, TriggerTiming timing,
 
 template <typename URV>
 bool
-Triggers<URV>::icountTriggerFired(PrivilegeMode mode, bool virtMode, bool interruptEnabled)
+Triggers<URV>::icountTriggerFired(PrivilegeMode mode, bool virtMode, bool interruptEnabled, URV mcontext)
 {
   // Check if we should skip tripping because of reentrant behavior. 
   bool skip = not interruptEnabled;
@@ -447,7 +447,7 @@ Triggers<URV>::icountTriggerFired(PrivilegeMode mode, bool virtMode, bool interr
 
   for (auto& trig : triggers_)
     {
-      if (not trig.matchInstCount(mode, virtMode))
+      if (not trig.matchInstCount(mode, virtMode, mcontext))
         continue;
 
       if (unsigned(trig.getAction()) <= unsigned(TriggerAction::EnterDebug))
@@ -474,7 +474,7 @@ Triggers<URV>::icountTriggerFired(PrivilegeMode mode, bool virtMode, bool interr
 template <typename URV>
 void
 Triggers<URV>::evaluateIcount(PrivilegeMode mode, bool virtMode, bool interruptEnabled,
-                              bool skipModified)
+                              bool skipModified, URV mcontext)
 {
   // Check if we should skip tripping because of reentrant behavior. 
   bool skip = not interruptEnabled;
@@ -483,7 +483,7 @@ Triggers<URV>::evaluateIcount(PrivilegeMode mode, bool virtMode, bool interruptE
 
   for (auto& trig : triggers_)
     {
-      if (not trig.matchInstCount(mode, virtMode))
+      if (not trig.matchInstCount(mode, virtMode, mcontext))
         continue;
 
       if (trig.isModified() and skipModified)
