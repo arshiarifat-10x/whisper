@@ -463,7 +463,7 @@ Hart<URV>::printDecodedInstTrace(const DecodedInst& di, uint64_t tag, std::strin
     }
 
   // Process memory diff.
-  if (di.instId() == InstId::cbo_zero and not hasException_)
+  if (di.instId() == InstId::cbo_zero and ldStWrite_)
     {
       uint64_t addr = cacheLineAlign(ldStAddr_);
       for (unsigned i = 0; i < cacheLineSize_; i += sizeof(URV))
@@ -906,7 +906,7 @@ Hart<URV>::printInstCsvTrace(const DecodedInst& di, FILE* out)
             buffer.printChar('=').print(einfo.data_);
         }
     }
-  if (di.instId() == InstId::cbo_zero and not hasException_)
+  if (di.instId() == InstId::cbo_zero and ldStWrite_)
     {
       uint64_t va = cacheLineAlign(ldStAddr_);
       uint64_t pa = cacheLineAlign(ldStPhysAddr1_);
