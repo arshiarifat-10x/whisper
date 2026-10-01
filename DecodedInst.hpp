@@ -257,6 +257,10 @@ namespace WdRiscv
     bool isAtomic() const
     { return entry_ and entry_->isAtomic(); }
 
+    /// Return true if this is a load-acquire or a store-release instruction.
+    bool isZalasr() const
+    { return entry_ and entry_->isZalasr(); }
+
     bool isAmocas() const
     {
       if (not entry_)

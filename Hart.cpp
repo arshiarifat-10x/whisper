@@ -3534,6 +3534,11 @@ Hart<URV>::createTrapInst(const DecodedInst* di, bool interrupt, unsigned causeC
   if (di->isVector())
     return 0;
 
+  // Spec defines no transformation for load-acquire and store-release: they are
+  // neither the basic loads and stores it lists nor standard atomics.
+  if (di->isZalasr())
+    return 0;
+
   // Spec does not specify how shadow stack instructions should be handled.
   if (di->isSspush() or di->isCsspush() or di->isSspopchk() or di->isCsspopchk() or
       di->instId() == InstId::ssamoswap_w or di->instId() == InstId::ssamoswap_d)
