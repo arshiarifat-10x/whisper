@@ -2285,6 +2285,9 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
       hart.tracePtw(flag);
     }
 
+  // We avoid repeating some config errors by printing them only for hart0.
+  bool hart0 = hart.sysHartIndex() == 0;
+
   // Reservation size in bytes for the load-reserve (LR) instruction.
   // Default is 4 for rv32 and 8 for rv64. A reservation size smaller
   // than default has no effect.
@@ -2298,8 +2301,9 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
 	    hart.configReservationSize(resBytes);
 	  else
 	    {
-	      cerr << "Error: Config file reservation_bytes ("
-		   << resBytes << ") is not a power of 2\n";
+              if (hart0)
+                cerr << "Error: Config file reservation_bytes ("
+                     << resBytes << ") is not a power of 2\n";
 	      errors++;
 	    }
 	}
@@ -2321,7 +2325,7 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
     {
       getJsonBoolean(tag, config_ ->at(tag), flag) or errors++;
       hart.enableSdtrig(flag);
-      if (hart.sysHartIndex() == 0)
+      if (hart0)
 	cerr << "Warning: Config file tag \"" << tag << "\" deprecated: "
 	     << "Add extension string \"sdtrig\" to \"isa\" tag instead.\n";
     }
@@ -2330,10 +2334,9 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
   tag = "enable_performance_counters";
   if (config_ -> contains(tag))
     {
-      cerr << "Warning: Config file tag \"" << tag << "\" deprecated: "
-           << "Add extension string \"zicntr\" to \"isa\" tag instead.\n";
-      // getJsonBoolean(tag, config_ ->at(tag), flag) or errors++;
-      // hart.enablePerformanceCounters(flag);
+      if (hart0)
+        cerr << "Warning: Config file tag \"" << tag << "\" deprecated: "
+             << "Add extension string \"zicntr\" to \"isa\" tag instead.\n";
     }
 
   tag = "perf_count_atomic_load_store";
@@ -2375,7 +2378,7 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
                                  "zkne", "zknh", "zbkb", "zbkx", "zksed", "zksh"} )
     {
       std::string etag = util::join("", "enable_", ztag);
-      if (config_ -> contains(etag))
+      if (config_ -> contains(etag) and hart0)
 	cerr << "Warning: Config file tag \"" << etag << "\" deprecated: "
 	     << "Add extension string \"" << ztag << "\" to \"isa\" tag instead.\n";
     }
@@ -2383,7 +2386,7 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
   for (std::string_view ztag : { "zbe", "zbf", "zbm", "zbp", "zbr", "zbt" } )
     {
       std::string etag = util::join("", "enable_", ztag);
-      if (config_ -> contains(etag))
+      if (config_ -> contains(etag) and hart0)
 	cerr << "Warning: Config file tag \"" << etag << "\" is no longer supported.\n";
     }
 
@@ -2394,8 +2397,9 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
   tag = "enable_counter_overflow";
   if (config_ ->contains(tag))
     {
-      cerr << "Warning: Config file tag \"enable_counter_overflow\" deprecated: "
-	   << " Add extension string \"sscofpmf\" to \"isa\" tag instread.\n";
+      if (hart0)
+        cerr << "Warning: Config file tag \"enable_counter_overflow\" deprecated: "
+             << " Add extension string \"sscofpmf\" to \"isa\" tag instread.\n";
       getJsonBoolean(tag, config_ ->at(tag), cof) or errors++;
     }
 
@@ -2409,7 +2413,8 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
   tag = "trap_non_zero_vstart";
   if (config_ ->contains(tag))
     {
-      std::cerr << "Warning: Configuration tag trap_non_zero_vstart should be in vector section.\n";
+      if (hart0)
+        cerr << "Warning: Configuration tag trap_non_zero_vstart should be in vector section.\n";
       bool flag = false;
       if (not getJsonBoolean(tag, config_ ->at(tag), flag))
         errors++;
@@ -2492,7 +2497,8 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
 	{
 	  if (not item.is_string())
 	    {
-	      cerr << "Error: Invalid value in config file item " << tag << " -- expecting string\n";
+              if (hart0)
+                cerr << "Error: Invalid value in config file item " << tag << " -- expecting string\n";
 	      ++errors;
 	    }
 	  else
@@ -2511,7 +2517,8 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
 	{
 	  if (not item.is_string())
 	    {
-	      cerr << "Error: Invalid value in config file item " << tag << " -- expecting string\n";
+              if (hart0)
+                cerr << "Error: Invalid value in config file item " << tag << " -- expecting string\n";
 	      ++errors;
 	    }
 	  else
@@ -2615,7 +2622,8 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
 	hart.forceRoundingMode(RoundingMode::NearestMax);
       else
 	{
-	  cerr << "Error: Invalid force_rounding_mode config: " << str << '\n';
+          if (hart0)
+            cerr << "Error: Invalid force_rounding_mode config: " << str << '\n';
 	  errors++;
 	}
     }
@@ -2630,7 +2638,7 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
   tag = "page_fault_on_first_access";
   if (config_ -> contains(tag))
     {
-      if (hart.sysHartIndex() == 0)
+      if (hart.sysHartIndex() == 0 and hart0)
 	cerr << "Warning: Config tag " << tag << " is deprecated -- "
 	     << "feature is now controlled by bit 61 of the MENVCFG/HENVCFG CSR.\n";
       getJsonBoolean(tag, config_ -> at(tag), flag) or errors++;
@@ -2649,7 +2657,8 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
           if (std::find(periods.begin(), periods.end(), 0)
                           != periods.end())
             {
-              cerr << "Warning: Snapshot periods of 0 are ignored\n";
+              if (hart0)
+                cerr << "Warning: Snapshot periods of 0 are ignored\n";
               periods.erase(std::remove(periods.begin(), periods.end(), 0), periods.end());
             }
 
@@ -2657,7 +2666,8 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
           if (it != periods.end())
             {
               periods.erase(it, periods.end());
-              cerr << "Warning: Duplicate snapshot periods not supported, removed duplicates\n";
+              if (hart0)
+                cerr << "Warning: Duplicate snapshot periods not supported, removed duplicates\n";
             }
         }
     }
@@ -2672,7 +2682,8 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
       {
         if ((size & (size - 1)) != 0)
           {
-            cerr << "Error: TLB size must be a power of 2\n";
+            if (hart0)
+              cerr << "Error: TLB size must be a power of 2\n";
             errors++;
           }
         else
@@ -2681,7 +2692,7 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
     }
 
   tag = "clear_mprv_on_ret";
-  if (config_ -> contains(tag))
+  if (config_ -> contains(tag) and hart0)
     cerr << "Warning: Config tag \"" << tag << "\" is deprecated and no longer has any effect\n";
 
   tag = "clear_mtval_on_illegal_instruction";
@@ -2756,7 +2767,8 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
   tag = "cancel_lr_on_ret";
   if (config_ -> contains(tag))
     {
-      cerr << "Warning: Config tag \"cancel_lr_on_ret\" is deprecated. Use cancel_lr_on_trap.\n";
+      if (hart0)
+        cerr << "Warning: Config tag \"cancel_lr_on_ret\" is deprecated. Use cancel_lr_on_trap.\n";
       if (not getJsonBoolean(tag, config_ -> at(tag), flag))
         errors++;
       else
@@ -2839,8 +2851,9 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
 	{
 	  if (not item.is_string())
 	    {
-	      cerr << "Error: Invalid value in config file item " << tag
-		   << " -- expecting string\n";
+              if (hart0)
+                cerr << "Error: Invalid value in config file item " << tag
+                     << " -- expecting string\n";
 	      atmErrors++;
 	      continue;
 	    }
@@ -2848,7 +2861,8 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
 	  VirtMem::Mode mode = VirtMem::Mode::Bare;
 	  if (not VirtMem::to_mode(modeStr, mode))
 	    {
-	      cerr << "Error: Error no such address translation mode: " << tag << '\n';
+              if (hart0)
+                cerr << "Error: Error no such address translation mode: " << tag << '\n';
 	      atmErrors++;
 	      continue;
 	    }
@@ -2856,7 +2870,8 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
 	}
       if (std::find(modes.begin(), modes.end(), VirtMem::Mode::Bare) == modes.end())
 	{
-	  cerr << "Warning: Bare mode missing in config file address_translation_modes -- adding it\n";
+          if (hart0)
+            cerr << "Warning: Bare mode missing in config file address_translation_modes -- adding it\n";
 	  modes.push_back(VirtMem::Mode::Bare);
 	}
       if (not atmErrors)
@@ -2874,8 +2889,8 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
 	{
 	  if (not item.is_string())
 	    {
-	      cerr << "Error: Invalid value in config file item " << tag
-		   << " -- expecting string\n";
+              if (hart0)
+                cerr << "Error: Invalid value in config file item " << tag << " -- expecting string\n";
 	      atpErrors++;
 	      continue;
 	    }
@@ -2883,7 +2898,8 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
 	  PmaskManager::Mode pmm{};
 	  if (not PmaskManager::to_pmm(pmmStr, pmm))
 	    {
-	      cerr << "Error: Error no such address translation pmm: " << tag << '\n';
+              if (hart0)
+                cerr << "Error: Error no such address translation pmm: " << tag << '\n';
 	      atpErrors++;
 	      continue;
 	    }
@@ -2904,7 +2920,8 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
   tag = "enable_pbmt";
   if (config_ -> contains(tag))
     {
-      std::cerr << "Config file tag enable_pbmt has been deprecated. Use enable_translation_pbmt.\n";
+      if (hart0)
+        cerr << "Config file tag enable_pbmt has been deprecated. Use enable_translation_pbmt.\n";
       getJsonBoolean(tag, config_ ->at(tag), flag) or errors++;
       hart.enableTranslationPbmt(flag);
       errors++;
@@ -2913,7 +2930,7 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
   tag = "enable_translation_napot";
   if (config_ -> contains(tag))
     {
-      if (hart.sysHartIndex() == 0)
+      if (hart0)
 	cerr << "Warning: Config tag " << tag << " is deprecated. "
 	     << "Use svnapot with --isa instead.\n";
       getJsonBoolean(tag, config_ ->at(tag), flag) or errors++;
@@ -2923,7 +2940,7 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
   tag = "enable_svinval";
   if (config_ -> contains(tag))
     {
-      if (hart.sysHartIndex() == 0)
+      if (hart0)
 	cerr << "Warning: Config tag " << tag << " is deprecated. "
 	     << "Use svinval with --isa instead.\n";
       getJsonBoolean(tag, config_ ->at(tag), flag) or errors++;
@@ -2933,7 +2950,7 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
   tag = "enable_supervisor_time_compare";
   if (config_ -> contains(tag))
     {
-      if (hart.sysHartIndex() == 0)
+      if (hart0)
 	cerr << "Warning: Config tag " << tag << " is deprecated. "
 	     << "Use sstc with --isa instead.\n";
       getJsonBoolean(tag, config_ ->at(tag), flag) or errors++;
@@ -2943,7 +2960,7 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
   tag = "enable_aia";
   if (config_ ->contains(tag))
     {
-      if (hart.sysHartIndex() == 0)
+      if (hart0)
 	cerr << "Warning: Config tag " << tag << " is deprecated. "
 	     << "Use smaia with --isa instead.\n";
       getJsonBoolean(tag, config_ ->at(tag), flag) or errors++;
@@ -2953,7 +2970,7 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
   tag = "enable_smstateen";
   if (config_ ->contains(tag))
     {
-      if (hart.sysHartIndex() == 0)
+      if (hart0)
 	cerr << "Warning: Config tag " << tag << " is deprecated. "
 	     << "Use smstateen with --isa instead.\n";
       getJsonBoolean(tag, config_ ->at(tag), flag) or errors++;
@@ -3036,7 +3053,8 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
       const auto &mi = config_->at(tag);
       if (!mi.is_array())
         {
-          std::cerr << "Error: Invalid machine_interrupts entry in config file (expecting array)\n";
+          if (hart0)
+            cerr << "Error: Invalid machine_interrupts entry in config file (expecting array)\n";
           ++errors;
         }
       else
@@ -3055,7 +3073,8 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
       const auto &si = config_->at(tag);
       if (!si.is_array())
         {
-          std::cerr << "Error: Invalid supervisor_interrupts entry in config file (expecting array)\n";
+          if (hart0)
+            cerr << "Error: Invalid supervisor_interrupts entry in config file (expecting array)\n";
           ++errors;
         }
       else
@@ -3074,7 +3093,8 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
       const auto &si = config_->at(tag);
       if (!si.is_array())
         {
-          std::cerr << "Error: Invalid non_maskable_interrutps entry in config file (expecting array)\n";
+          if (hart0)
+            cerr << "Error: Invalid non_maskable_interrutps entry in config file (expecting array)\n";
           ++errors;
         }
       else
