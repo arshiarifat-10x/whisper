@@ -4057,6 +4057,7 @@ CsRegs<URV>::enableSdtrig(bool flag)
   enableCsr(CN::SCONTEXT, flag and superEnabled_);
   enableCsr(CN::HCONTEXT, flag and superEnabled_ and hyperEnabled_);
   updateMscontext();
+  updateHcontext();
 }
 
 
@@ -4098,6 +4099,27 @@ CsRegs<URV>::updateMscontext()
   ms->setInitialValue(s->getResetValue());
   ms->definePrivilegeMode(PrivilegeMode::Supervisor);
   ms->setImplemented(s->isImplemented());
+}
+
+
+template <typename URV>
+void
+CsRegs<URV>::updateHcontext()
+{
+  using CN = CsrNumber;
+
+  auto h = findCsr(CN::HCONTEXT);
+  auto m = findCsr(CN::MCONTEXT);
+  if (not h or not m)
+    return;
+
+  // Alias of mcontext.hcontext. Privilege stays supervisor (HS) and the CSR stays
+  // a hypervisor register, so VS/VU cannot access it. M and Debug can.
+  h->tie(m->valuePtr_);
+  h->setWriteMask(m->getWriteMask());
+  h->setPokeMask(m->getPokeMask());
+  h->setReadMask(m->getReadMask());
+  h->setInitialValue(m->getResetValue());
 }
 
 
@@ -4562,6 +4584,14 @@ CsRegs<URV>::configCsr(CsrNumber csrNum, bool implemented, URV resetValue,
       pokeMask &= legal;
       resetValue &= mask;
     }
+  else if (csrNum == CsrNumber::MCONTEXT or csrNum == CsrNumber::HCONTEXT)
+    {
+      // hcontext field is bits 13:0. A config mask may tie more high bits to 0.
+      URV legal = URV(0x3fff);
+      mask &= legal;
+      pokeMask &= legal;
+      resetValue &= mask;
+    }
 
   csr.setImplemented(implemented);
   csr.setInitialValue(resetValue);
@@ -4574,6 +4604,23 @@ CsRegs<URV>::configCsr(CsrNumber csrNum, bool implemented, URV resetValue,
     {
       csr.setReadMask(URV(0xffffffff));
       updateMscontext();
+    }
+  else if (csrNum == CsrNumber::MCONTEXT or csrNum == CsrNumber::HCONTEXT)
+    {
+      csr.setReadMask(URV(0x3fff));
+      if (csrNum == CsrNumber::HCONTEXT)
+        {
+          // The field lives in mcontext. Push this mask and reset onto it.
+          auto mcontext = findCsr(CsrNumber::MCONTEXT);
+          if (mcontext)
+            {
+              mcontext->setWriteMask(csr.getWriteMask());
+              mcontext->setPokeMask(csr.getPokeMask());
+              mcontext->setReadMask(URV(0x3fff));
+              mcontext->setInitialValue(resetValue);
+            }
+        }
+      updateHcontext();
     }
 
   if (csrNum == CsrNumber::MSTATUS)
@@ -5502,11 +5549,16 @@ CsRegs<URV>::defineHypervisorRegs()
   csr = defineCsr("htimedeltah", Csrn::HTIMEDELTAH, !mand, !imp, 0, wam, wam);
   csr->setHypervisor(true); markHighLowPair(Csrn::HTIMEDELTAH, Csrn::HTIMEDELTA);
 
-  // This may be already defined with trigger CSRs.
+  // hcontext is an alias of mcontext.hcontext (bits 13:0). Bits above that are 0.
+  // Tied to mcontext once that CSR is defined.
+  URV hcontextMask = 0x3fff;
   if (not nameToNumber_.contains("hcontext"))
-    csr = defineCsr("hcontext",    Csrn::HCONTEXT,    !mand, !imp, 0, wam, wam);
+    csr = defineCsr("hcontext", Csrn::HCONTEXT, !mand, !imp, 0, hcontextMask, hcontextMask);
   else
     csr = findCsr(Csrn::HCONTEXT);
+  csr->setWriteMask(hcontextMask);
+  csr->setPokeMask(hcontextMask);
+  csr->setReadMask(hcontextMask);
   csr->setHypervisor(true);
 
   // vsstatus
@@ -5616,9 +5668,16 @@ CsRegs<URV>::defineDebugRegs()
   mask = 0x88;   // Only MPTE and MTE bits writable.
   defineCsr("tcontrol", Csrn::TCONTROL, !mand, !imp, 0, mask, mask);
 
-  defineCsr("mcontext", Csrn::MCONTEXT, !mand, !imp, 0, wam, wam);
+  // mcontext.hcontext is bits 13:0 (debug spec 5.7.9). hcontext aliases that field.
+  URV hcontextMask = 0x3fff;
+  auto mcontext = defineCsr("mcontext", Csrn::MCONTEXT, !mand, !imp, 0, hcontextMask, hcontextMask);
+  mcontext->setReadMask(hcontextMask);
   if (not nameToNumber_.contains("hcontext"))
-    defineCsr("hcontext", Csrn::HCONTEXT, !mand, !imp, 0, wam, wam);
+    {
+      auto hcontext = defineCsr("hcontext", Csrn::HCONTEXT, !mand, !imp, 0, hcontextMask, hcontextMask);
+      hcontext->setReadMask(hcontextMask);
+    }
+  updateHcontext();
 
   // Define triggers.
   unsigned triggerCount = 4;  // FIXME: why 4?
@@ -7851,6 +7910,10 @@ CsRegs<URV>::addDebugFields()
     setCsrFields(Csrn::SCONTEXT, {{"data", 32}});
   else
     setCsrFields(Csrn::SCONTEXT, {{"data", 32}, {"zero", xlen - 32}});
+
+  // hcontext field is bits 13:0. hcontext CSR aliases it.
+  setCsrFields(Csrn::MCONTEXT, {{"hcontext", 14}, {"zero", xlen - 14}});
+  setCsrFields(Csrn::HCONTEXT, {{"hcontext", 14}, {"zero", xlen - 14}});
 
   setCsrFields(Csrn::DCSR,
       {{"prv", 2}, {"step", 1}, {"nmip", 1}, {"mprven", 1}, {"v", 1}, {"cause", 3}, {"stoptime", 1}, {"stopcount", 1}, {"stepie", 1}, {"ebreaku", 1},{"ebreaks", 1}, {"zero", 1}, {"ebreakm", 1}, {"ebreakvu", 1}, {"ebreakvs", 1}, {"zero", 1},{"cetrig", 1}, {"zero", 4}, {"extcause", 3}, {"zero", 1}, {"debugver", 4}});

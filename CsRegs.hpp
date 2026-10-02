@@ -2860,6 +2860,9 @@ namespace WdRiscv
     /// Tie mscontext to scontext, or untie it, according to mscontextOn_.
     void updateMscontext();
 
+    /// Tie hcontext to mcontext.hcontext (debug spec 5.7.7).
+    void updateHcontext();
+
     const PmpManager& pmpMgr_;
     const PmaManager& pmaMgr_;
 
