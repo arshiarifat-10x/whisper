@@ -3175,7 +3175,7 @@ Mcm<URV>::vecStoreToReadForward(const McmInstr& store, MemoryOp& readOp, uint64_
 template <typename URV>
 bool
 Mcm<URV>::storeToReadForward(const McmInstr& store, MemoryOp& readOp, uint64_t& mask,
-			     uint64_t addr, uint64_t data, unsigned size) const
+			     uint64_t stAddr, uint64_t stData, unsigned stSize) const
 {
   if (mask == 0)
     return true;  // No bytes left to forward.
@@ -3184,15 +3184,15 @@ Mcm<URV>::storeToReadForward(const McmInstr& store, MemoryOp& readOp, uint64_t& 
     return false;
 
   uint64_t rol = readOp.pa_, roh = readOp.pa_ + readOp.size_ - 1;
-  uint64_t il = addr, ih = il + size - 1;
-  if (roh < il or rol > ih)
+  uint64_t sl = stAddr, sh = sl + stSize - 1;   // store low and high
+  if (roh < sl or rol > sh)
     return false;  // no overlap
 
   unsigned count = 0; // Count of forwarded bytes
   for (unsigned rix = 0; rix < readOp.size_; ++rix)
     {
       uint64_t byteAddr = rol + rix;
-      if (byteAddr < il or byteAddr > ih)
+      if (byteAddr < sl or byteAddr > sh)
 	continue;  // Read-op byte does not overlap instruction.
 
       uint64_t byteMask = uint64_t(0xff) << (rix * 8);
@@ -3228,7 +3228,7 @@ Mcm<URV>::storeToReadForward(const McmInstr& store, MemoryOp& readOp, uint64_t& 
       auto off16 = static_cast<uint16_t>(offset);  // TOD: Use gsl
       readOp.fwOffset_.at(rix) = std::max(readOp.fwOffset_.at(rix), off16);
 
-      uint8_t byteVal = data >> (byteAddr - il)*8;
+      uint8_t byteVal = stData >> (byteAddr - sl)*8;
       uint64_t aligned = uint64_t(byteVal) << 8*rix;
 	
       readOp.data_ = (readOp.data_ & ~byteMask) | aligned;
