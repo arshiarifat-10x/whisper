@@ -1697,6 +1697,10 @@ namespace WdRiscv
       updateCachedTriggerState();
     }
 
+    /// Implement mscontext as an alias of scontext (debug spec 5.7.10).
+    void enableMscontext(bool flag)
+    { csRegs_.enableMscontext(flag); }
+
     /// Enable the smcntrpmf (priv mode filetering for MCYCLE/MINSTRET) extension.
     void enableSmcntrpmf(bool flag)
     { csRegs_.enableSmcntrpmf(flag); }

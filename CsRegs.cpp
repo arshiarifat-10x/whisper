@@ -4056,6 +4056,48 @@ CsRegs<URV>::enableSdtrig(bool flag)
 
   enableCsr(CN::SCONTEXT, flag and superEnabled_);
   enableCsr(CN::HCONTEXT, flag and superEnabled_ and hyperEnabled_);
+  updateMscontext();
+}
+
+
+template <typename URV>
+void
+CsRegs<URV>::enableMscontext(bool flag)
+{
+  mscontextOn_ = flag;
+  updateMscontext();
+}
+
+
+template <typename URV>
+void
+CsRegs<URV>::updateMscontext()
+{
+  using CN = CsrNumber;
+
+  auto ms = findCsr(CN::MSCONTEXT);
+  auto s = findCsr(CN::SCONTEXT);
+  if (not ms or not s)
+    return;
+
+  if (not mscontextOn_)
+    {
+      ms->tie(nullptr);
+      ms->definePrivilegeMode(PrivilegeMode::Machine);
+      ms->setImplemented(false);
+      return;
+    }
+
+  // Alias of scontext. The 0x7aa encoding is machine-level, but the spec makes
+  // the alias accessible from S/HS as well as M and Debug. VS/VU are rejected
+  // in isReadable.
+  ms->tie(s->valuePtr_);
+  ms->setWriteMask(s->getWriteMask());
+  ms->setPokeMask(s->getPokeMask());
+  ms->setReadMask(s->getReadMask());
+  ms->setInitialValue(s->getResetValue());
+  ms->definePrivilegeMode(PrivilegeMode::Supervisor);
+  ms->setImplemented(s->isImplemented());
 }
 
 
@@ -4366,6 +4408,10 @@ CsRegs<URV>::isReadable(CsrNumber num, PrivilegeMode pm, bool vm) const
   if (not csr or pm < csr->privilegeMode())
     return false;
 
+  // Debug spec 5.7.10: mscontext is not accessible from VS or VU.
+  if (num == CsrNumber::MSCONTEXT and vm)
+    return false;
+
   if (pm != PrivilegeMode::Machine and not isStateEnabled(num, pm, vm))
     return false;
 
@@ -4514,6 +4560,9 @@ CsRegs<URV>::configCsr(CsrNumber csrNum, bool implemented, URV resetValue,
   csr.setPokeMask(pokeMask);
   csr.pokeNoMask(resetValue);
   csr.setIsShared(shared);
+
+  if (csrNum == CsrNumber::SCONTEXT)
+    updateMscontext();
 
   if (csrNum == CsrNumber::MSTATUS)
     {
@@ -5537,6 +5586,7 @@ CsRegs<URV>::defineDebugRegs()
 
   // Debug/Trace registers.
   defineCsr("scontext",  Csrn::SCONTEXT,  !mand, !imp,  0, wam, wam);
+  // Optional 0.13 alias of scontext. Off unless enable_mscontext is set.
   defineCsr("mscontext", Csrn::MSCONTEXT, !mand, !imp,  0, wam, wam);
   defineCsr("tselect",   Csrn::TSELECT,   !mand, !imp,  0, wam, wam);
   defineCsr("tdata1",    Csrn::TDATA1,    !mand, !imp,  0, wam, wam);
@@ -8292,7 +8342,7 @@ CsRegs<URV>::isStateEnabled(CsrNumber num, PrivilegeMode pm, bool vm) const
     rseb.bits_.C = 1;
   else if (num == CN::SRMCFG)
     rseb.bits_.SRMCFG = 1;
-  if (num == CN::HCONTEXT or num == CN::SCONTEXT)
+  if (num == CN::HCONTEXT or num == CN::SCONTEXT or num == CN::MSCONTEXT)
     rseb.bits_.CONTEXT = 1;
   else if (num == CN::SISELECT or
            num == CN::SIREG   or num == CN::SIREG2  or num == CN::SIREG3  or

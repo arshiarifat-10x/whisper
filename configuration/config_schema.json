@@ -395,6 +395,10 @@
         "enable_misaligned_data": {
             "$ref": "#/definitions/bool_or_bool_string"
         },
+        "enable_mscontext": {
+            "$ref": "#/definitions/bool_or_bool_string",
+            "description": "When true, implement mscontext (0x7aa) as an alias of scontext. Accessible from S/HS, M, and Debug mode, and not from VS or VU (debug spec 5.7.10). Absent unless scontext is implemented. Defaults to false."
+        },
         "enable_mtip": {
             "$ref": "#/definitions/bool_or_bool_string",
             "description": "When true, the timer interrupt pending bit is controlled by the timer."
