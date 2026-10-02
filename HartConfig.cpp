@@ -371,6 +371,13 @@ applyCsrConfig(Hart<URV>& hart, std::string_view nm, const nlohmann::json& conf,
       return true;
     }
 
+  if (name == "mscontext")
+    {
+      cerr << "Warning: CSR mscontext is an alias of scontext. Use the "
+           << "enable_mscontext tag instead of configuring it directly.\n";
+      return true;
+    }
+
   if (debug0 and not isDebug)
     {
       if (verbose)
@@ -2405,6 +2412,17 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
 
   applyPerfEvents(hart, *config_, userMode, cof, verbose) or errors++;
   applyCsrConfig(hart, *config_, verbose) or errors++;
+
+  // After CSR config so the alias picks up scontext's mask and reset value.
+  // Implemented state follows scontext, which enableSdtrig sets once the ISA is applied.
+  tag = "enable_mscontext";
+  if (config_ -> contains(tag))
+    {
+      bool mscontext = false;
+      getJsonBoolean(tag, config_ -> at(tag), mscontext) or errors++;
+      hart.enableMscontext(mscontext);
+    }
+
   applyTriggerConfig(hart, *config_) or errors++;
 
   // No longer needed here. Remove once enable_counter_overflow is removed.
