@@ -2600,7 +2600,11 @@ CsRegs<URV>::enableZicfilp(bool flag)
   mfields.bits_.SPELP = flag;
   mstatus.setWriteMask(mfields.value_);
 
-  // MPELP is bit 9 of MSTATUSH in RV32.
+  mfields.value_ = mstatus.getPokeMask();
+  mfields.bits_.SPELP = flag;
+  mstatus.setPokeMask(mfields.value_);
+
+  // MPELP is bit 9 of MSTATUSH in RV32, bit 41 of MSTATUS in RV64.
   if (rv32_)
     {
       auto& msh = regs_.at(size_t(CN::MSTATUSH));
@@ -2609,6 +2613,16 @@ CsRegs<URV>::enableZicfilp(bool flag)
         msh.write(msh.read() & ~mpelp);
       msh.setWriteMask(flag ? (msh.getWriteMask() | mpelp) : (msh.getWriteMask() & ~mpelp));
       msh.setPokeMask(flag ? (msh.getPokeMask() | mpelp) : (msh.getPokeMask() & ~mpelp));
+    }
+  else if constexpr (sizeof(URV) == 8)
+    {
+      mfields.value_ = mstatus.getWriteMask();
+      mfields.bits_.MPELP = flag;
+      mstatus.setWriteMask(mfields.value_);
+
+      mfields.value_ = mstatus.getPokeMask();
+      mfields.bits_.MPELP = flag;
+      mstatus.setPokeMask(mfields.value_);
     }
 
   // Update SPELP readable/writable in SSTATUS.
