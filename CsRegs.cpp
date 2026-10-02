@@ -4554,6 +4554,15 @@ CsRegs<URV>::configCsr(CsrNumber csrNum, bool implemented, URV resetValue,
       return false;
     }
 
+  if (csrNum == CsrNumber::SCONTEXT)
+    {
+      // data is bits 31:0. A config mask may tie more high bits to 0, not fewer.
+      URV legal = URV(0xffffffff);
+      mask &= legal;
+      pokeMask &= legal;
+      resetValue &= mask;
+    }
+
   csr.setImplemented(implemented);
   csr.setInitialValue(resetValue);
   csr.setWriteMask(mask);
@@ -4562,7 +4571,10 @@ CsRegs<URV>::configCsr(CsrNumber csrNum, bool implemented, URV resetValue,
   csr.setIsShared(shared);
 
   if (csrNum == CsrNumber::SCONTEXT)
-    updateMscontext();
+    {
+      csr.setReadMask(URV(0xffffffff));
+      updateMscontext();
+    }
 
   if (csrNum == CsrNumber::MSTATUS)
     {
@@ -5585,9 +5597,13 @@ CsRegs<URV>::defineDebugRegs()
   using Csrn = CsrNumber;
 
   // Debug/Trace registers.
-  defineCsr("scontext",  Csrn::SCONTEXT,  !mand, !imp,  0, wam, wam);
+  // scontext.data is bits 31:0 (debug spec 5.7.8). Bits above that are 0.
+  URV scontextMask = URV(0xffffffff);
+  auto scontext = defineCsr("scontext", Csrn::SCONTEXT, !mand, !imp, 0, scontextMask, scontextMask);
+  scontext->setReadMask(scontextMask);
   // Optional 0.13 alias of scontext. Off unless enable_mscontext is set.
-  defineCsr("mscontext", Csrn::MSCONTEXT, !mand, !imp,  0, wam, wam);
+  auto mscontext = defineCsr("mscontext", Csrn::MSCONTEXT, !mand, !imp, 0, scontextMask, scontextMask);
+  mscontext->setReadMask(scontextMask);
   defineCsr("tselect",   Csrn::TSELECT,   !mand, !imp,  0, wam, wam);
   defineCsr("tdata1",    Csrn::TDATA1,    !mand, !imp,  0, wam, wam);
   defineCsr("tdata2",    Csrn::TDATA2,    !mand, !imp,  0, wam, wam);
@@ -7829,6 +7845,12 @@ CsRegs<URV>::addDebugFields()
       {{"data", xlen}});
   setCsrFields(Csrn::TCONTROL,
       {{"zero", 3}, {"mte", 1}, {"zero", 3}, {"mpte", 1}, {"zero", xlen - 8}});
+
+  // data is bits 31:0. On RV64 the upper half is hardwired 0.
+  if (rv32_)
+    setCsrFields(Csrn::SCONTEXT, {{"data", 32}});
+  else
+    setCsrFields(Csrn::SCONTEXT, {{"data", 32}, {"zero", xlen - 32}});
 
   setCsrFields(Csrn::DCSR,
       {{"prv", 2}, {"step", 1}, {"nmip", 1}, {"mprven", 1}, {"v", 1}, {"cause", 3}, {"stoptime", 1}, {"stopcount", 1}, {"stepie", 1}, {"ebreaku", 1},{"ebreaks", 1}, {"zero", 1}, {"ebreakm", 1}, {"ebreakvu", 1}, {"ebreakvs", 1}, {"zero", 1},{"cetrig", 1}, {"zero", 4}, {"extcause", 3}, {"zero", 1}, {"debugver", 4}});
