@@ -1693,7 +1693,10 @@ CsRegs<URV>::updateSsp()
   // - Otherwise SSP remains supervisor-qualified
   PrivilegeMode mode = PrivilegeMode::Machine;
   if (mSse)
-    mode = (hSse and sSse) ? PrivilegeMode::User : PrivilegeMode::Supervisor;
+    {
+      bool ugate = hyperEnabled_ ? (hSse and sSse) : sSse;
+      mode = ugate ? PrivilegeMode::User : PrivilegeMode::Supervisor;
+    }
   ssp->setPrivilegeMode(mode);
   ssp->setHypervisor(not hSse);
 }
