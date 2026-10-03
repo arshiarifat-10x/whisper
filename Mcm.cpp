@@ -3139,13 +3139,7 @@ Mcm<URV>::vecStoreToReadForward(const McmInstr& store, MemoryOp& readOp, uint64_
       if (drained)
 	continue;   // Cannot forward from a drained write.
 
-      if (lastWopTime >= readOp.time_)
-        {
-          uint64_t offset = lastWopTime - readOp.time_;
-          auto off16 = static_cast<uint16_t>(offset);  // TODO: Use gsl
-          assert(off16 == offset);  // Check for overflow
-          readOp.fwOffset_.at(rix) = std::max(readOp.fwOffset_.at(rix), off16);
-        }
+      readOp.updateForwardingInfo(rix, lastWopTime, store.tag_);
 
       // Process reference model writes in reverse order so that later ones forward first.
       for (auto iter = vecRefs.refs_.rbegin(); iter != vecRefs.refs_.rend(); ++iter)
@@ -3224,9 +3218,7 @@ Mcm<URV>::storeToReadForward(const McmInstr& store, MemoryOp& readOp, uint64_t& 
       if (fwdTime == 0)
 	fwdTime = time_;  // Happens if store.memOps_ empty.
 
-      uint64_t offset = fwdTime > readOp.time_ ? fwdTime - readOp.time_ : 0;
-      auto off16 = static_cast<uint16_t>(offset);  // TOD: Use gsl
-      readOp.fwOffset_.at(rix) = std::max(readOp.fwOffset_.at(rix), off16);
+      readOp.updateForwardingInfo(rix, fwdTime, store.tag_);
 
       uint8_t byteVal = stData >> (byteAddr - sl)*8;
       uint64_t aligned = uint64_t(byteVal) << 8*rix;
@@ -4062,15 +4054,7 @@ Mcm<URV>::effectiveMinTime(Hart<URV>& hart, const McmInstr& instr) const
 	if (isVec and op.elemIx_ >= vl)
 	  continue;
 
-        uint64_t opMin = op.time_;
-        if (op.isRead_)
-          {
-            // Take forward time into consideration.
-            opMin = op.time_ + op.fwOffset_.at(0);
-            for (unsigned i = 1; i < op.size_; ++i)
-              opMin = std::min(opMin, (op.time_ + op.fwOffset_.at(i)));
-          }
-
+        uint64_t opMin = op.minForwardTime(); // Take forward time into consideration for read ops.
 	mint = std::min(mint, opMin);
       }
 
@@ -4096,14 +4080,7 @@ Mcm<URV>::effectiveMaxTime(const McmInstr& instr) const
     if (opIx < sysMemOps_.size())
       {
 	const auto& op = sysMemOps_.at(opIx);
-
-	uint64_t opMax = op.time_;
-        if (op.isRead_)
-          {
-            // Take forward time into consideration.
-            for (unsigned i = 1; i < op.size_; ++i)
-              opMax = std::max(opMax, (op.time_ + op.fwOffset_.at(i)));
-          }
+	uint64_t opMax = op.maxForwardTime(); // Take forward time into consideration for read ops.
 	maxt = std::max(maxt, opMax);
       }
 
@@ -4389,8 +4366,14 @@ Mcm<URV>::ppoRule4(Hart<URV>& hart, const McmInstr& instrB) const
                         continue;
                       predTime = aOp.forwardTime(addr);  // Predecessor byte time
                       succTime = bOp.forwardTime(addr);
-                      if (predWrite)
+
+                      // If we forward from a store before the fence, we want the original
+                      // time and not the forward time of the read op. Basically, we do
+                      // not want forwarding across a fence if there is a write from
+                      // another hart.
+                      if (predWrite and bOp.forwardingStore(addr) < fenceTag)
                         succTime = bOp.time_;
+
                       if (predTime < succTime)
                         continue;
 

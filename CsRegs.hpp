@@ -1242,6 +1242,11 @@ namespace WdRiscv
     /// Enable triggers.
     void enableSdtrig(bool flag);
 
+    /// When true, mscontext (0x7aa) is an alias of scontext (debug spec 5.7.10).
+    /// It is implemented only while scontext is implemented, and is accessible from
+    /// S/HS, M, and Debug mode, but not from VS or VU.
+    void enableMscontext(bool flag);
+
     /// Enable STEE (static trusted execution env)
     void enableStee(bool flag);
 
@@ -2852,6 +2857,12 @@ namespace WdRiscv
 
   private:
 
+    /// Tie mscontext to scontext, or untie it, according to mscontextOn_.
+    void updateMscontext();
+
+    /// Tie hcontext to mcontext.hcontext (debug spec 5.7.7).
+    void updateHcontext();
+
     const PmpManager& pmpMgr_;
     const PmaManager& pmaMgr_;
 
@@ -2892,6 +2903,7 @@ namespace WdRiscv
     bool cofEnabled_ = false;     // Counter overflow
     bool stateenOn_ = false;      // Mstateen extension.
     bool sdtrigOn_ = false;       // Stdtrig (debug triggers) extension.
+    bool mscontextOn_ = false;    // mscontext alias of scontext (debug spec 5.7.10).
     bool ssqosidOn_ = false;      // Ssqosid extension.
     bool aiaEnabled_ = false;     // Aia extension.
 

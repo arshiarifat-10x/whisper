@@ -1088,23 +1088,18 @@ namespace WdRiscv
     /// Check for NAPOT on PTE and apply NAPOT fix-up if applicable. Returns false if PTE
     /// would cause a page-fault due to NAPOT, and true otherwise.
     template <typename PTE, typename VA>
-    bool napotCheck(PTE& pte, VA va)
+    bool napotCheck(PTE& pte, VA va, int level)
     {
-      if (napotEnabled_)
-        {
-          if (pte.hasNapot())
-            {
-	      // Table 6.1 of privileged spec (version 1.12) disallows NAPOT for non-leaf
-	      if (not pte.leaf())
-		return false;
+      if (not pte.hasNapot() or not napotEnabled_)
+        return true;
 
-              if ((pte.ppn0() & 0xf) != 0x8)
-                return false;
-              pte.setPpn0((pte.ppn0() & ~0xf) | (va.vpn0() & 0xf));
-            }
-        }
-      else if (pte.hasNapot())
-        return false;
+      if (level >= 1)
+        return false;  // pte.N == 1 reserved for level >= 1
+
+      if ((pte.ppn(level) & 0xf) != 0x8)
+        return false;  // Least sig 4 bits of ppn(level) must be 0x8
+
+      pte.setPpn0((pte.ppn0() & ~0xf) | (va.vpn0() & 0xf));
       return true;
     }
 
