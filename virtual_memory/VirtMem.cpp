@@ -749,7 +749,7 @@ VirtMem::pageTableWalk(uint64_t address, PrivilegeMode privMode, bool read, bool
 
       if (trace_)
         walkVec.back().ptes_.back() = pte.data_;  // Save PTE value.
-      if (not napotCheck(pte, va))
+      if (not napotCheck(pte, va, ii))
         return traceException(stage1PageFaultType(read, write, exec), exec, walkIx);
 
       // 3.
@@ -848,7 +848,7 @@ VirtMem::pageTableWalk(uint64_t address, PrivilegeMode privMode, bool read, bool
 
             // Preserve the original pte.ppn (no NAPOT fixup).
             PTE orig = pte2;
-            if (not napotCheck(pte2, va))
+            if (not napotCheck(pte2, va, ii))
               return traceException(stage1PageFaultType(read, write, exec), exec, walkIx);
 
 	    if (pte.data_ != pte2.data_)
@@ -953,7 +953,7 @@ VirtMem::stage2PageTableWalk(uint64_t address, bool read, bool write, bool exec,
 
       if (trace_)
         walkVec.back().ptes_.back() = pte.data_;  // Save PTE value.
-      if (not napotCheck(pte, va))
+      if (not napotCheck(pte, va, ii))
         return traceException(stage2PageFaultType(read, write, exec), forFetch_, walkIx);
 
       // 3.
@@ -1034,7 +1034,7 @@ VirtMem::stage2PageTableWalk(uint64_t address, bool read, bool write, bool exec,
 
             // Preserve the original pte.ppn (no NAPOT fixup).
             PTE orig = pte2;
-            if (not napotCheck(pte2, va))
+            if (not napotCheck(pte2, va, ii))
               return traceException(stage2PageFaultType(read, write, exec), forFetch_, walkIx);
 
 	    if (pte.data_ != pte2.data_)
@@ -1156,7 +1156,7 @@ VirtMem::stage1PageTableWalk(uint64_t address, PrivilegeMode privMode, bool read
           walkVec.at(walkIx).s1Tail_ = true;    // Stage 1 tail PTE valid.
           walkVec.at(walkIx).ptes_.back() = pte.data_;  // Save PTE value.
         }
-      if (not napotCheck(pte, va))
+      if (not napotCheck(pte, va, ii))
         return traceException(stage1PageFaultType(read, write, exec), forFetch_, walkIx);
 
       // 3.
@@ -1253,7 +1253,7 @@ VirtMem::stage1PageTableWalk(uint64_t address, PrivilegeMode privMode, bool read
 
             // Preserve the original pte.ppn (no NAPOT fixup).
             PTE orig = pte2;
-            if (not napotCheck(pte2, va))
+            if (not napotCheck(pte2, va, ii))
               return traceException(stage1PageFaultType(read, write, exec), forFetch_, walkIx);
 
 	    if (pte.data_ != pte2.data_)
