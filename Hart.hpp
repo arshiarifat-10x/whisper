@@ -2372,6 +2372,10 @@ namespace WdRiscv
     void enableClearTinstOnCboFlush(bool flag)
     { clearTinstOnCboFlush_ = flag; }
 
+    /// Clear MTINST/HTINST on lr/sc if flag is true.
+    void enableClearTinstOnLrSc(bool flag)
+    { clearTinstOnLrSc_ = flag; }
+
     /// Enable/disable clearing of reservation set after xRET
     void enableCancelLrOnTrap(bool flag)
     { cancelLrOnTrap_ = flag; }
@@ -6977,6 +6981,7 @@ namespace WdRiscv
 
     bool clearTinstOnCboInval_ = false;
     bool clearTinstOnCboFlush_ = false;
+    bool clearTinstOnLrSc_ = false;
     bool alignCboAddr_ = false;
 
     bool inSeqnMisaligned_ = false;     // Set if fully evaluate split misaligned accesses in-sequence.

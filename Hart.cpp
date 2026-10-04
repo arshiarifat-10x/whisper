@@ -3550,6 +3550,9 @@ Hart<URV>::createTrapInst(const DecodedInst* di, bool interrupt, unsigned causeC
   if (clearTinstOnCboFlush_ and di->instId() == InstId::cbo_flush)
     return 0;
 
+  if (clearTinstOnLrSc_ and (di->isLr() or di->isSc()))
+    return 0;
+
   // Otherwise we write a transformed instruction.
   uint32_t uncompressed = 0;
   if (not di->isCompressed())
