@@ -347,7 +347,7 @@ Hart<URV>::printDecodedInstTrace(const DecodedInst& di, uint64_t tag, std::strin
 	oss << ":0x" << ldStPhysAddr1_;
 
       auto pma = getPma(ldStPhysAddr1_);
-      auto sep = "";
+      const auto* sep = "";
       if (not pma.isCacheable())
         {
           oss << ",nc";
@@ -382,7 +382,7 @@ Hart<URV>::printDecodedInstTrace(const DecodedInst& di, uint64_t tag, std::strin
 	      if (not vecInfo.isLoad_)
 		oss << '=' << "0x" << std::setfill('0') << std::setw(num_nibbles) << einfo.data_;
               auto pma = getPma(einfo.pa_);
-              auto sep = "";
+              const auto* sep = "";
               if (not pma.isCacheable())
                 {
                   oss << ",nc";
@@ -707,7 +707,7 @@ indirectReadSelect(Hart<URV>& hart, const DecodedInst& di,
   if (diIsWrite)
     return std::nullopt;
 
-  CsrNumber csrn = CsrNumber(di.op2());
+  auto csrn = CsrNumber(di.op2());
 
   for (auto csrUpdated : csrns)
     if (csrUpdated == csrn)

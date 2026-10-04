@@ -761,10 +761,9 @@ namespace WdRiscv
     /// manager.
     bool overlaps(uint64_t addr) const
     {
-      for (const auto& region : regions_)
-        if (region.valid_ and regionMatches(region, addr))
-          return true;
-      return false;
+      return std::ranges::any_of(regions_, [addr](const Region& region) {
+          return region.valid_ and regionMatches(region, addr);
+        });
     }
 
     /// Used for tracing to determine if an address matches multiple PMAs.
@@ -1105,7 +1104,7 @@ namespace WdRiscv
 
     /// Return true if the given PMACFG value is valid (an invalid value will not
     /// match any address). A value is valid if the size field is non-zero.
-    bool isValidPmacfg(uint64_t val) const
+    static bool isValidPmacfg(uint64_t val)
     { return (val >> 58) != 0; }
 
     /// Legalize the value of a PMACFG CSR: Modify next to make it legal. Use prev to
