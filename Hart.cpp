@@ -4597,7 +4597,7 @@ Hart<URV>::processPmacfgChange(CsrNumber csr, URV newVal)
 
   if (pmaMgr_.unpackPmacfg(newVal, low, high, mask, pma))
     {
-      if (pmaMgr_.isValidPmacfg(newVal))
+      if (PmaManager::isValidPmacfg(newVal))
         {
           if (not definePmaRegion(ix, low, high, pma))
             return false;
@@ -12790,20 +12790,16 @@ Hart<URV>::execWfi(const DecodedInst* di)
   if (not wfiStallException_)
     return;
 
-  if (tw)
+  if (tw or (pm == PM::User and isRvs() and not virtMode_))
     {
-      // TW=1 in less than M: illegal unless WFI completed within the bound.
+      // TW=1 in less than M, or U-mode with S implemented: illegal unless WFI
+      // completed within the bound.
       illegalInst(di);
     }
   else if (virtMode_ and pm == PM::Supervisor and vtw)
     {
       // VS-mode, VTW=1, TW=0: virtual unless completed within the bound.
       virtualInst(di);
-    }
-  else if (pm == PM::User and isRvs() and not virtMode_)
-    {
-      // U-mode with S implemented: illegal unless completed within the bound.
-      illegalInst(di);
     }
 }
 
@@ -14364,7 +14360,7 @@ Hart<URV>::execZilxLoad(const DecodedInst* di, bool doScale, bool zextIndex)
   if (doScale)
     index *= size;
 
-  uint64_t virtAddr = URV(base + index);
+  auto virtAddr = uint64_t(URV(base + index));
 
   uint64_t data = 0;
   bool ok = load<LOAD_TYPE>(di, virtAddr, data);
