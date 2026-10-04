@@ -1630,9 +1630,7 @@ Iommu::translate(const IommuRequest& req, uint64_t& pa, unsigned& cause,
       if (not params_.reportExplicitPmpViolation)
         return true;
 
-      if (req.isAtsExec() and not (isPmpExecutable(pa) and isPmaExecutable(pa)))
-        cause = 1; // instruction access fault
-      else if (req.isExec() and not (isPmpExecutable(pa) and isPmaExecutable(pa)))
+      if ((req.isAtsExec() or req.isExec()) and not (isPmpExecutable(pa) and isPmaExecutable(pa)))
         cause = 1; // instruction access fault
       else if (req.isRead() and not (isPmpReadable(pa) and isPmaReadable(pa)))
         cause = 5; // load access fault
