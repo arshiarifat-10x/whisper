@@ -13,6 +13,14 @@ namespace WdRiscv
 {
   class HartConfig;
 
+  // lz4Files makes the layout depend on LZ4_COMPRESS. The inline namespace puts that setting in
+  // the mangled name, so a whisper/embedder mismatch fails to link instead of corrupting memory.
+#if LZ4_COMPRESS
+  inline namespace abi_lz4 {
+#else
+  inline namespace abi_no_lz4 {
+#endif
+
   /// Parse/maintain arguments provided on the command line.
   struct Args
   {
@@ -189,4 +197,6 @@ namespace WdRiscv
     bool maxinstFail = false;   // Fail if instruction count limit reached.
     bool elfAfterSnp = false;   // Re-load ELF files after snapshot is loaded.
   };
+
+  }  // inline namespace abi_lz4 / abi_no_lz4
 }
