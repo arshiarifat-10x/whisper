@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include <iostream>
+#include <ranges>
 #include <span>
+#include <string>
 #include "numa.hpp"
 #include "HartConfig.hpp"
 #include "Args.hpp"
@@ -54,10 +56,9 @@ main(int argc, char* argv[])
 
       // Load configuration files.
       HartConfig config;
-      std::vector<std::string> configFiles;
-      boost::split(configFiles, args.configFile, boost::is_any_of(","));
-      for (const auto& configFile : configFiles)
+      for (const auto part : std::views::split(args.configFile, ','))
         {
+          std::string configFile(part.begin(), part.end());
           if (configFile.empty())
             continue;
           if (not config.loadConfigFile(configFile))

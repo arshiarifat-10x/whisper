@@ -37,7 +37,7 @@ namespace
   absDiff(T a, T b)
   {
     using DWT = makeDoubleWide_t<T>;
-    DWT da = a, db = b;
+    DWT da = a, db = b;  // NOLINT(bugprone-signed-char-misuse)
     DWT d = da > db ? da - db : db - da;
     return T(d);
   }
@@ -48,7 +48,7 @@ namespace
   wideAbsDiff(T a, T b)
   {
     using DWT = makeDoubleWide_t<T>;
-    DWT da = a, db = b;
+    DWT da = a, db = b;  // NOLINT(bugprone-signed-char-misuse)
     return da > db ? da - db : db - da;
   }
 }
