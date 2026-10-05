@@ -13104,9 +13104,13 @@ Hart<URV>::doCsrRead(const DecodedInst* di, CsrNumber csr, bool isWrite, URV& va
   if (csRegs_.read(csr, privMode_, value))
     return true;
 
-  // Unimplemented *iselect: spec leaves behavior unspecified. Default is to trap
-  // (below). When nop_ireg_on_oob_iselect is set, treat as a successful read of zero.
-  if (nopIregOnOobIselect_ and isIregCsr(csr))
+  // Accessing *ireg wihth unimplemented *iselect: spec leaves behavior
+  // unspecified. Default is to trap (below). When nop_ireg_on_oob_iselect is set, treat
+  // as a successful read of zero, provided the current privilege mode can access the
+  // *ireg CSR.
+  if (isIregCsr(csr) and nopIregOnOobIselect_ and
+      csRegs_.isReadable(csr, privMode_, virtMode_) and
+      not (virtMode_ and csRegs_.isHypervisor(csr)))
     {
       value = 0;
       return true;
@@ -13406,9 +13410,6 @@ Hart<URV>::doCsrWrite(const DecodedInst* di, CsrNumber csr, URV val,
 	return;  // Cannot turn-off C-extension if PC is not word aligned.
     }
 
-  // Update integer register.
-  intRegs_.write(intReg, intRegVal);
-
   // Legalize HGATP. We do this here to avoid making CsRegs depend on VirtMem.
   if (csr == CsrNumber::HGATP)
     {
@@ -13477,8 +13478,10 @@ Hart<URV>::doCsrWrite(const DecodedInst* di, CsrNumber csr, URV val,
   auto lastVal = csRegs_.peek(csr);
   if (not csRegs_.write(csr, privMode_, val))
     {
-      // Unimplemented *iselect: default trap (below). nop_ireg_on_oob_iselect: ignore write.
-      if (nopIregOnOobIselect_ and isIregCsr(csr))
+      // Accessing *ireg wihth unimplemented *iselect: spec leaves behavior
+      // unspecified. Default is to trap (below). When nop_ireg_on_oob_iselect is set,
+      // treat as a no-op, provided the current privilege mode can access the *ireg CSR.
+      if (isIregCsr(csr) and nopIregOnOobIselect_ and isCsrWriteable(csr, privMode_, virtMode_))
         return;
 
       // Same HS-qualified illegal/virtual behavior as doCsrRead.
@@ -13491,6 +13494,10 @@ Hart<URV>::doCsrWrite(const DecodedInst* di, CsrNumber csr, URV val,
         illegalInst(di);
       return;
     }
+
+  // Update integer register.
+  intRegs_.write(intReg, intRegVal);
+
   postCsrUpdate(csr, val, lastVal);
 
   // Csr was written. If it was minstret, compensate for
