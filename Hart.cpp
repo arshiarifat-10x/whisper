@@ -12386,7 +12386,7 @@ namespace WdRiscv
   void
   Hart<uint64_t>::execMret(const DecodedInst* di)
   {
-    if (privMode_ < PrivilegeMode::Machine)
+    if (privMode_ < PrivilegeMode::Machine or (debugMode_ and debugModeXretIllegal_))
       {
 	illegalInst(di);
 	return;
@@ -12481,7 +12481,7 @@ namespace WdRiscv
   void
   Hart<uint32_t>::execMret(const DecodedInst* di)
   {
-    if (privMode_ < PrivilegeMode::Machine)
+    if (privMode_ < PrivilegeMode::Machine or (debugMode_ and debugModeXretIllegal_))
       {
 	illegalInst(di);
 	return;
@@ -12567,7 +12567,7 @@ template <typename URV>
 void
 Hart<URV>::execSret(const DecodedInst* di)
 {
-  if (not isRvs())
+  if (not isRvs() or (debugMode_ and debugModeXretIllegal_))
     {
       illegalInst(di);
       return;
@@ -12707,7 +12707,7 @@ void
 Hart<URV>::execMnret(const DecodedInst* di)
 {
   if (not extensionIsEnabled(RvExtension::Smrnmi) or
-      privMode_ < PrivilegeMode::Machine)
+      privMode_ < PrivilegeMode::Machine or (debugMode_ and debugModeXretIllegal_))
     {
       illegalInst(di);
       return;

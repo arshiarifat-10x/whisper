@@ -2831,6 +2831,15 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
         hart.setDebugTrapAddress(addr);
     }
 
+  tag = "debug_mode_xret_illegal";
+  if (config_ -> contains(tag))
+    {
+      if (not getJsonBoolean(tag, config_ -> at(tag), flag))
+        errors++;
+      else
+        hart.enableDebugModeXretIllegal(flag);
+    }
+
   tag = "trace_pmp";
   if (config_ -> contains(tag))
     {
