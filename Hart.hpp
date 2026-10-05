@@ -2346,7 +2346,7 @@ namespace WdRiscv
     /// When false (default), such accesses raise an illegal (or virtual) instruction
     /// exception as recommended by the spec.
     void enableNopIregOnOobIselect(bool flag)
-    { nopIregOnOobIselect_ = flag; }
+    { csRegs_.enableNopIregOnOobIselect(flag); }
 
     /// Clear MTVAL on breakpoint exception if flag is true.
     /// Otherwise, set MTVAL to the virtual address of the instruction.
@@ -6979,7 +6979,6 @@ namespace WdRiscv
     bool inDebugParkLoop_ = false;    // True if BREAKP exception goes to DPL.
 
     bool clearMtvalOnIllInst_ = false;
-    bool nopIregOnOobIselect_ = false;  // Trap on unimplemented *iselect (spec recommended).
     bool clearMtvalOnEbreak_ = false;
     bool clearMtvalOnEgs_ = false;
     bool lastEbreak_ = false;
