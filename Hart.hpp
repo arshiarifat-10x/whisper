@@ -2793,8 +2793,8 @@ namespace WdRiscv
     void setDebugTrapAddress(URV addr)
     { debugTrapAddr_ = addr; }
 
-    /// Make MRET, SRET and MNRET illegal in debug mode when flag is true. The debug spec
-    /// leaves them unspecified there.
+    /// Make MRET, SRET, MNRET, MIPOPRET and SIPOPRET illegal in debug mode when flag is
+    /// true. The debug spec leaves them unspecified there.
     void enableDebugModeXretIllegal(bool flag)
     { debugModeXretIllegal_ = flag; }
 
@@ -6968,7 +6968,7 @@ namespace WdRiscv
     bool ebreakInstDebug_ = false;   // True if debug mode entered from ebreak.
     URV debugParkLoop_ = ~URV(0);    // Jump to this address on entering debug mode.
     URV debugTrapAddr_ = ~URV(0);    // Jump to this address on exception in debug mode.
-    bool debugModeXretIllegal_ = false;  // MRET/SRET/MNRET illegal in debug mode.
+    bool debugModeXretIllegal_ = false;  // Trap returns illegal in debug mode.
     bool enteredDebugMode_ = false;  // True if entered debug mode because of trigger or ebreak.
     bool lastDm_ = false;            // True if in debug-mode before current inst
 

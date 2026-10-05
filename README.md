@@ -831,9 +831,10 @@ this address is not an all ones bit pattern. Default: all ones bit
 pattern.
 
 ### debug_mode_xret_illegal
-When true, the mret, sret and mnret instructions raise an illegal instruction
-exception in debug mode. Default is false, which executes them as in
-machine mode. The debug spec leaves their behavior in debug mode unspecified.
+When true, the mret, sret, mnret, mipopret and sipopret instructions raise
+an illegal instruction exception in debug mode. Default is false, which
+executes them as in machine mode. The debug spec leaves their behavior in
+debug mode unspecified.
 
 ###  physical_memory_protection_grain
 Defines the physical memory protection (PMP) grain size in bytes. This must be a
