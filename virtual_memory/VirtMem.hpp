@@ -1107,6 +1107,7 @@ namespace WdRiscv
     /// PTEs.
     void enableDirtyGForVsNonleaf(bool flag)
     { dirtyGForVsNonleaf_ = flag; }
+
     /// In trace mode, record the cause of the exception in the walk data.  Return the
     /// exception cause.
     ExceptionCause traceException(ExceptionCause cause, bool exec, size_t walkIx)
