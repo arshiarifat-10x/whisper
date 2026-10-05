@@ -2761,6 +2761,15 @@ HartConfig::applyConfig(Hart<URV>& hart, bool userMode, bool verbose) const
         hart.enableClearTinstOnCboFlush(flag);
     }
 
+  tag = "clear_tinst_on_lrsc";
+  if (config_ -> contains(tag))
+    {
+      if (not getJsonBoolean(tag, config_ -> at(tag), flag))
+        errors++;
+      else
+        hart.enableClearTinstOnLrSc(flag);
+    }
+
   tag = "align_cbo_address";
   if (config_ -> contains(tag))
     {

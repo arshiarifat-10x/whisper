@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cinttypes>
 #include <iomanip>
+#include <ranges>
 #include "PerfApi.hpp"
 
 using namespace TT_PERF;
@@ -483,11 +484,10 @@ PerfApi<URV>::execute(unsigned hartIx, uint64_t time, uint64_t tag)
   // context and trips the save/set assert. So when an indirect window is accessed, forward the
   // older-spec-CSR context now across both calls and undo it afterwards; other instructions are
   // unaffected.
-  bool hasIndirectWindow = false;
-  for (unsigned i = 0; i < packet.operandCount_; ++i) {
-    const auto& op = packet.operands_[i];
-    if (op.type == OperandType::CsReg and isIndirectCsrWindow(op.number)) { hasIndirectWindow = true; break; }
-  }
+  bool hasIndirectWindow = std::ranges::any_of(packet.operands_ | std::views::take(packet.operandCount_),
+                                               [](const auto& op) {
+                                                 return op.type == OperandType::CsReg and isIndirectCsrWindow(op.number);
+                                               });
   SpecCsrContext ctxFwds(hart, hasIndirectWindow
                                  ? pushSpecCsrContext(hart, hartIx, packet.tag_, &packet)
                                  : std::vector<CsrFwdSave>{});

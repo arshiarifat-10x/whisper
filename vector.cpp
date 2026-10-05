@@ -5557,7 +5557,7 @@ Hart<URV>::vwmul_vx(unsigned vd, unsigned vs1, ELEM_TYPE e2, unsigned group,
       if (vecRegs_.isDestActive(vd, ix, destGroup, masked, dest))
 	{
 	  vecRegs_.read(vs1, ix, group, e1);
-	  dest = ELEM_TYPE_X2(e1);
+	  dest = ELEM_TYPE_X2(e1); // NOLINT(bugprone-signed-char-misuse)
 	  dest *= e2Wide;
 	}
       vecRegs_.write(vd, ix, destGroup, dest);

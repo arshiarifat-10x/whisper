@@ -925,12 +925,14 @@ namespace TT_IOMMU
     /// are set to the faulting GPA and true respectively.
     bool loadProcessContext(const DeviceContext& dc, unsigned pid,
                             ProcessContext& pc, unsigned& cause,
-                            uint64_t& faultGpa, bool& faultIsImplicit);
+                            uint64_t& faultGpa, bool& faultIsImplicit,
+                            std::vector<PbmtInfo>* info);
 
     /// Overloaded version with device ID for PDT cache support
     bool loadProcessContext(const DeviceContext& dc, unsigned devId, unsigned pid,
                             ProcessContext& pc, unsigned& cause,
-                            uint64_t& faultGpa, bool& faultIsImplicit);
+                            uint64_t& faultGpa, bool& faultIsImplicit,
+                            std::vector<PbmtInfo>* info);
 
     /// Return true if this IOMMU uses wired interrupts. Return false it it uses message
     /// signaled interrupts (MSI). This is for interrupting the core in case of a fault.
@@ -1256,12 +1258,12 @@ namespace TT_IOMMU
     /// Helper to the translate method. Collect the PBMT of the implicit access
     /// translations done by stage1Translate. This is a no-op if info is the null pointer.
     /// Collected PBMTs are appended to the given vector.
-    void getStage1Pbmts(std::vector<PbmtInfo>* info);
+    void getStage1Pbmts(std::vector<PbmtInfo>* info, bool stage1Ok);
 
     /// Helper to the translate method. Collect the PBMT of the stage2Translate.  This is
     /// a no-op if info is the null pointer. Collected PBMT is appended to the given
     /// vector.
-    void getStage2Pbmt(std::vector<PbmtInfo>* info);
+    void getStage2Pbmt(std::vector<PbmtInfo>* info, IosatpMode s1Mode);
 
     /// Helper to translate. Does translation but does not report fault cause on fail,
     /// instead, it sets cause and dtf to DC.tc.DTF.
@@ -1553,6 +1555,8 @@ namespace TT_IOMMU
   class IommuWrapper
   {
   public:
+
+    using PbmtInfo = Iommu::PbmtInfo;
 
     IommuWrapper(uint64_t addr, uint64_t size, uint64_t memorySize, uint64_t capabilities = Iommu::fullyCapable.value) :
       IommuWrapper({
@@ -1869,7 +1873,9 @@ namespace TT_IOMMU
       return result;
     }
 
-    bool loadProcessContext(const DeviceContext& dc, unsigned pid, ProcessContext& pc, unsigned& cause, uint64_t& faultGpa, bool& faultIsImplicit)
+    bool loadProcessContext(const DeviceContext& dc, unsigned pid, ProcessContext& pc,
+                            unsigned& cause, uint64_t& faultGpa, bool& faultIsImplicit,
+                            std::vector<PbmtInfo>* pbmtInfo)
     {
       auto ep = dc.extendedPart();
       fprintf(fp2_, "dc = DeviceContext(\n");
@@ -1883,10 +1889,12 @@ namespace TT_IOMMU
       fprintf(fp2_, "  0x%" PRIx64 "ull\n", ep.reserved_);
       fprintf(fp2_, ");\n");
       fprintf(fp2_, "iommu.loadProcessContext(dc, 0x%xu, pc, cause, faultGpa, faultIsImplicit);\n", pid);
-      return iommu_.loadProcessContext(dc, pid, pc, cause, faultGpa, faultIsImplicit);
+      return iommu_.loadProcessContext(dc, pid, pc, cause, faultGpa, faultIsImplicit, pbmtInfo);
     }
 
-    bool loadProcessContext(const DeviceContext& dc, unsigned devId, unsigned pid, ProcessContext& pc, unsigned& cause, uint64_t& faultGpa, bool& faultIsImplicit)
+    bool loadProcessContext(const DeviceContext& dc, unsigned devId, unsigned pid,
+                            ProcessContext& pc, unsigned& cause, uint64_t& faultGpa,
+                            bool& faultIsImplicit, std::vector<PbmtInfo>* pbmtInfo)
     {
       auto ep = dc.extendedPart();
       fprintf(fp2_, "dc = DeviceContext(\n");
@@ -1900,7 +1908,7 @@ namespace TT_IOMMU
       fprintf(fp2_, "  0x%" PRIx64 "ull\n", ep.reserved_);
       fprintf(fp2_, ");\n");
       fprintf(fp2_, "iommu.loadProcessContext(dc, 0x%xu, 0x%xu, pc, cause, faultGpa, faultIsImplicit);\n", devId, pid);
-      return iommu_.loadProcessContext(dc, devId, pid, pc, cause, faultGpa, faultIsImplicit);
+      return iommu_.loadProcessContext(dc, devId, pid, pc, cause, faultGpa, faultIsImplicit, pbmtInfo);
     }
 
     bool definePmpRegs(uint64_t pmpcfgAddr, unsigned pmpcfgCount,

@@ -1192,16 +1192,18 @@ Iommu::loadDeviceContext(unsigned devId, DeviceContext& dc, unsigned& cause)
 bool
 Iommu::loadProcessContext(const DeviceContext& dc, uint32_t pid,
                           ProcessContext& pc, unsigned& cause,
-                          uint64_t& faultGpa, bool& faultIsImplicit)
+                          uint64_t& faultGpa, bool& faultIsImplicit,
+                          std::vector<PbmtInfo>* pbmtInfo)
 {
   // Call the overloaded version with deviceId = 0 (unknown)
-  return loadProcessContext(dc, 0, pid, pc, cause, faultGpa, faultIsImplicit);
+  return loadProcessContext(dc, 0, pid, pc, cause, faultGpa, faultIsImplicit, pbmtInfo);
 }
 
 bool
 Iommu::loadProcessContext(const DeviceContext& dc, unsigned devId, uint32_t pid,
                           ProcessContext& pc, unsigned& cause,
-                          uint64_t& faultGpa, bool& faultIsImplicit)
+                          uint64_t& faultGpa, bool& faultIsImplicit,
+                          std::vector<PbmtInfo>* pbmtInfo)
 {
   cause = 0;
   faultGpa = 0;
@@ -1227,6 +1229,8 @@ Iommu::loadProcessContext(const DeviceContext& dc, unsigned devId, uint32_t pid,
     return false;
   unsigned ii = levels - 1;
 
+  auto prevInfoSize = pbmtInfo? pbmtInfo->size() : 0;
+
   while (true)
     {
       // step_2: Add the PDT index offset before translation
@@ -1241,6 +1245,7 @@ Iommu::loadProcessContext(const DeviceContext& dc, unsigned devId, uint32_t pid,
       //    second-stage address translation of a then stop and report the fault detected
       //    by the second-stage address translation process. The translated A is used in
       //    subsequent steps.
+      bool addInfo = false;
       if (dc.iohgatpMode() != IohgatpMode::Bare)
         {
           // FIX double check that the privilege mode is User. Should it be the mode of
@@ -1262,11 +1267,19 @@ Iommu::loadProcessContext(const DeviceContext& dc, unsigned devId, uint32_t pid,
                 }
               return false;
             }
+
+          addInfo = true;
           aa = pa;
         }
 
       if (not params_.addPdteOffsetBeforeStage2)
         aa += offset;
+
+      if (pbmtInfo and addInfo)
+        {
+          PbmtInfo info{ .addr = aa, .pbmt = unsigned(mmu_.lastPbmt()) };
+          pbmtInfo->push_back(info);
+        }
 
       // 3. If i == 0 go to step 9.
       if (ii == 0)
@@ -1281,6 +1294,8 @@ Iommu::loadProcessContext(const DeviceContext& dc, unsigned devId, uint32_t pid,
       if (not memRead(aa, 8, bigEnd, pdte.value_, corrupted))
         {
           cause = corrupted ? 269 : 265;
+          if (cause == 265 and pbmtInfo and addInfo)
+            pbmtInfo->pop_back();
           return false;
         }
 
@@ -1320,6 +1335,8 @@ Iommu::loadProcessContext(const DeviceContext& dc, unsigned devId, uint32_t pid,
   if (not readProcessContext(dc, aa, pc, corrupted))
     {
       cause = corrupted ? 269 : 265;
+      if (cause == 265 and pbmtInfo and pbmtInfo->size() > prevInfoSize)
+        pbmtInfo->pop_back();
       return false;
     }
 
@@ -1630,9 +1647,7 @@ Iommu::translate(const IommuRequest& req, uint64_t& pa, unsigned& cause,
       if (not params_.reportExplicitPmpViolation)
         return true;
 
-      if (req.isAtsExec() and not (isPmpExecutable(pa) and isPmaExecutable(pa)))
-        cause = 1; // instruction access fault
-      else if (req.isExec() and not (isPmpExecutable(pa) and isPmaExecutable(pa)))
+      if ((req.isAtsExec() or req.isExec()) and not (isPmpExecutable(pa) and isPmaExecutable(pa)))
         cause = 1; // instruction access fault
       else if (req.isRead() and not (isPmpReadable(pa) and isPmaReadable(pa)))
         cause = 5; // load access fault
@@ -1987,7 +2002,7 @@ Iommu::translate_(const IommuRequest& req, uint64_t& pa, unsigned& cause, bool& 
               // 14. Locate the process-context (PC) as specified in Section 2.3.2.
               ProcessContext pc;
               if (not loadProcessContext(dc, req.devId, processId, pc, cause,
-                                        pdtFaultGpa, pdtFaultIsImplicit))
+                                         pdtFaultGpa, pdtFaultIsImplicit, pbmtInfo))
                 {
                   if (cause == 20 or cause == 21 or cause == 23)
                     {
@@ -2036,11 +2051,12 @@ Iommu::translate_(const IommuRequest& req, uint64_t& pa, unsigned& cause, bool& 
   //     process then stop and report the fault. If the translation process is completed
   //     successfully then let A be the translated GPA.
   uint64_t gpa = req.iova;
-  if (not stage1Translate(iosatp, iohgatp, effPriv, dc.sxl(), pscid, req.isRead(), req.isWrite(),
-                          req.isExec(), sum, req.iova, dc.gade(), dc.sade(), dc.sbe(), gpa, cause,
-                          attribs ? &s1Attribs : nullptr))
+  bool ok = stage1Translate(iosatp, iohgatp, effPriv, dc.sxl(), pscid, req.isRead(), req.isWrite(),
+                            req.isExec(), sum, req.iova, dc.gade(), dc.sade(), dc.sbe(), gpa, cause,
+                            attribs ? &s1Attribs : nullptr);
+  getStage1Pbmts(pbmtInfo, ok);
+  if (not ok)
     return false;
-  getStage1Pbmts(pbmtInfo);
 
   // Count S/VS-stage page table walk event after successful first-stage translation
   // Extract context for event filtering (GSCID/GSCV for IDT=1 mode)
@@ -2113,7 +2129,8 @@ Iommu::translate_(const IommuRequest& req, uint64_t& pa, unsigned& cause, bool& 
       return false;
     }
 
-  getStage2Pbmt(pbmtInfo);
+  auto s1Mode = Iosatp{iosatp}.bits_.mode_;
+  getStage2Pbmt(pbmtInfo, s1Mode); // Get PMBT of final explicit stage2 translate.
 
   // Count G-stage page table walk event after successful second-stage translation
   // Reuse context variables already computed above
@@ -2135,7 +2152,7 @@ Iommu::translate_(const IommuRequest& req, uint64_t& pa, unsigned& cause, bool& 
 
 
 void
-Iommu::getStage1Pbmts(std::vector<PbmtInfo>* pbmtInfo)
+Iommu::getStage1Pbmts(std::vector<PbmtInfo>* pbmtInfo, bool stage1Ok)
 {
   if (not pbmtInfo)
     return;
@@ -2145,7 +2162,7 @@ Iommu::getStage1Pbmts(std::vector<PbmtInfo>* pbmtInfo)
   // Put implicit translation walk results first.
   for (const auto& walk : walks)
     {
-      if (walk.isStage2())
+      if (walk.isStage2() and walk.complete() and not walk.hasException())
         {
           PbmtInfo info{ .addr = walk.result(), .pbmt = unsigned(walk.pbmt()) };
           pbmtInfo->push_back(info);
@@ -2153,19 +2170,20 @@ Iommu::getStage1Pbmts(std::vector<PbmtInfo>* pbmtInfo)
     }
 
   // Put explicit stage1 walk result last.
-  for (const auto& walk : walks)
-    {
-      if (walk.isStage1())
-        {
-          PbmtInfo info{ .addr = walk.result(), .pbmt = unsigned(walk.pbmt()) };
-          pbmtInfo->push_back(info);
-        }
-    }
+  if (stage1Ok)
+    for (const auto& walk : walks)
+      {
+        if (walk.isStage1())
+          {
+            PbmtInfo info{ .addr = walk.result(), .pbmt = unsigned(walk.pbmt()) };
+            pbmtInfo->push_back(info);
+          }
+      }
 }
 
 
 void
-Iommu::getStage2Pbmt(std::vector<PbmtInfo>* pbmtInfo)
+Iommu::getStage2Pbmt(std::vector<PbmtInfo>* pbmtInfo, IosatpMode s1Mode)
 {
   if (not pbmtInfo)
     return;
@@ -2182,13 +2200,16 @@ Iommu::getStage2Pbmt(std::vector<PbmtInfo>* pbmtInfo)
   // The stage1 translate should have put a pbmt-info entry at end of the pbmtInfo vector
   // corresponding to the stage1 explicit translation pbmt.
   if (pbmtInfo->empty())
-    return;
+    return;  // Should not happen.
 
-  unsigned s1pbmt = pbmtInfo->back().pbmt;
-  pbmtInfo->back().addr = walk.result();   // Use SPA as requested by IOMMU DV team. 
+  if (s1Mode != IosatpMode::Bare)
+    {
+      unsigned s1pbmt = pbmtInfo->back().pbmt;
+      pbmtInfo->back().addr = walk.result();   // Use SPA as requested by IOMMU DV team. 
 
-  if (s1pbmt != 0)
-    return;  // Stage1 has priority
+      if (s1pbmt != 0)
+        return;  // Stage1 has priority
+    }
 
   pbmtInfo->back().pbmt = s2pbmt;
 }

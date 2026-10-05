@@ -2372,6 +2372,10 @@ namespace WdRiscv
     void enableClearTinstOnCboFlush(bool flag)
     { clearTinstOnCboFlush_ = flag; }
 
+    /// Clear MTINST/HTINST on lr/sc if flag is true.
+    void enableClearTinstOnLrSc(bool flag)
+    { clearTinstOnLrSc_ = flag; }
+
     /// Enable/disable clearing of reservation set after xRET
     void enableCancelLrOnTrap(bool flag)
     { cancelLrOnTrap_ = flag; }
@@ -3204,14 +3208,30 @@ namespace WdRiscv
     // Adjust time base and timer value either forwards (positive diff) or
     // backwards (negative diff).  This is used by PerfApi.
     void adjustTime(int64_t diff) {
-      if (diff >= 0)
+      if (not autoIncrementTimer_)
+        return;
+      // Closed form of diff tickTime()/untickTime() calls; PerfApi calls this twice per
+      // execute with the in-flight tag distance. Exact only while timeSample_ < period.
+      const uint64_t period = (URV(1) << timeDownSample_) * numHarts_;
+      if (period == 0 or period > INT64_MAX or timeSample_ >= period)
         {
-          for (int64_t i = 0; i < diff; i++) tickTime();
+          if (diff >= 0)
+            for (int64_t i = 0; i < diff; i++) tickTime();
+          else
+            for (int64_t i = 0; i < -diff; i++) untickTime();
+          return;
         }
-      else
+      const auto speriod = static_cast<int64_t>(period);
+      const int64_t total = static_cast<int64_t>(timeSample_) + diff;
+      int64_t q = total / speriod, r = total % speriod;
+      if (r < 0)
         {
-          for (int64_t i = 0; i < -diff; i++) untickTime();
+          r += speriod;
+          --q;
         }
+      timeSample_ = r;
+      if (q != 0)
+        atomic_ref(time_).fetch_add(static_cast<uint64_t>(q), std::memory_order_relaxed);
     }
 
     /// Return the data vector register number associated with the given ld/st element
@@ -6961,6 +6981,7 @@ namespace WdRiscv
 
     bool clearTinstOnCboInval_ = false;
     bool clearTinstOnCboFlush_ = false;
+    bool clearTinstOnLrSc_ = false;
     bool alignCboAddr_ = false;
 
     bool inSeqnMisaligned_ = false;     // Set if fully evaluate split misaligned accesses in-sequence.

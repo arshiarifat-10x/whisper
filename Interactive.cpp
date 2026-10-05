@@ -1109,6 +1109,12 @@ Interactive<URV>::pokeCommand(Hart<URV>& hart, const std::string& line,
 	    return false;
 	  hart.allowRsrvInNonCacheable(val);
 	}
+      else if (addrStr == "cleartinstlrsc")
+	{
+	  if (not parseCmdLineNumber("value1", tokens.at(3), val))
+	    return false;
+	  hart.enableClearTinstOnLrSc(val);
+	}
       return true;
     }
 
