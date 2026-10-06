@@ -354,7 +354,6 @@ applyCsrConfig(Hart<URV>& hart, std::string_view nm, const nlohmann::json& conf,
       return false;
     }
   bool exists0 = csr->isImplemented();
-  bool shared0 = csr->isShared();
   URV reset0 = csr->getResetValue(), mask0 = csr->getWriteMask();
   URV pokeMask0 = csr->getPokeMask();
   bool debug0 = csr->isDebug();
@@ -388,7 +387,7 @@ applyCsrConfig(Hart<URV>& hart, std::string_view nm, const nlohmann::json& conf,
   if (errors)
     return false;
 
-  if (not hart.configCsrByUser(csr->getName(), exists, reset, mask, pokeMask, shared, isDebug, isHExt))
+  if (not hart.configCsrByUser(csr->getName(), exists, reset, mask, pokeMask, isDebug, isHExt))
     {
       cerr << "Error: Invalid CSR (" << name << ") in config file.\n";
       return false;
@@ -449,9 +448,6 @@ applyCsrConfig(Hart<URV>& hart, std::string_view nm, const nlohmann::json& conf,
 
 	  if (exists0 and exists0 != exists)
 	    cerr << "  implemented: " << exists0 << " to " << exists << '\n';
-
-	  if (shared0 != shared)
-	    cerr << "  shared: " << shared0 << " to " << shared << '\n';
 
 	  if (reset0 != reset)
 	    cerr << "  reset: 0x" << std::hex << reset0 << " to 0x" << reset << '\n' << std::dec;
@@ -3900,26 +3896,6 @@ HartConfig::finalizeCsrConfig(System<URV>& system) const
 {
   if (system.hartCount() == 0)
     return false;
-
-  // Make shared CSRs in each hart except first one in core point to
-  // the corresponding values in the first hart zero.
-  for (unsigned ci = 0; ci < system.coreCount(); ++ci)
-    {
-      auto corePtr = system.ithCore(ci);
-      if (not corePtr)
-        continue;
-
-      auto hart0 = corePtr->ithHart(0);
-      if (not hart0)
-        continue;
-
-      for (unsigned hi = 1; hi < corePtr->hartCount(); ++hi)
-        {
-          auto hartPtr = corePtr->ithHart(hi);
-          if (hartPtr)
-            hartPtr->tieSharedCsrsTo(*hart0);
-        }
-    }
 
   // Define callback to react to write/poke to mcountinhibit CSR.
   defineMcountinhibitSideEffects(system);
