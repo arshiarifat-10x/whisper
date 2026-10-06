@@ -959,7 +959,7 @@ VirtMem::stage2PageTableWalk(uint64_t address, bool read, bool write, bool exec,
       // 3.
       if (not isValidPte(pte))
         if (not ssMode_ or (ssEnabled_ and not isSsPte(pte)))
-          return traceException(stage2PageFaultType(read, write, exec), exec, walkIx);
+          return traceException(stage2PageFaultType(read, write, exec), forFetch_, walkIx);
 
       // 4.
       global = global or pte.global();
@@ -1162,7 +1162,7 @@ VirtMem::stage1PageTableWalk(uint64_t address, PrivilegeMode privMode, bool read
       // 3.
       if (not isValidPte(pte))
         if (not ssMode_ or (ssEnabled_ and not isSsPte(pte)))
-          return traceException(stage1PageFaultType(read, write, exec), exec, walkIx);
+          return traceException(stage1PageFaultType(read, write, exec), forFetch_, walkIx);
 
       // 4.
       global = global or pte.global();
