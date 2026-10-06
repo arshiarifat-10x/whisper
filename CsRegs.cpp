@@ -627,7 +627,7 @@ CsRegs<URV>::readMireg(CsrNumber num, URV& value, bool virtMode) const
       return true;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -662,7 +662,7 @@ CsRegs<URV>::readMireg2(CsrNumber num, URV& value, bool virtMode) const
       return true;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -689,7 +689,7 @@ CsRegs<URV>::readMireg3(CsrNumber num, URV& value, bool virtMode) const
   if (unsigned ix = 0; isPmaSelect(sel, ix))
     return true;
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -716,7 +716,7 @@ CsRegs<URV>::readMireg4(CsrNumber num, URV& value, bool virtMode) const
   if (unsigned ix = 0; isPmaSelect(sel, ix))
     return true;
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -738,7 +738,7 @@ CsRegs<URV>::readMireg5(CsrNumber num, URV& value, bool virtMode) const
   if (unsigned ix = 0; isPmaSelect(sel, ix))
     return true;
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -760,7 +760,7 @@ CsRegs<URV>::readMireg6(CsrNumber num, URV& value, bool virtMode) const
   if (unsigned ix = 0; isPmaSelect(sel, ix))
     return true;
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -842,7 +842,7 @@ CsRegs<URV>::readSireg(CsrNumber num, URV& value, PrivilegeMode pm, bool virtMod
       return imsic_->readSireg(virtMode, guest, sel, value);
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -927,7 +927,7 @@ CsRegs<URV>::readSireg2(CsrNumber num, URV& value, PrivilegeMode pm, bool virtMo
       return true;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -958,7 +958,7 @@ CsRegs<URV>::readSireg3(CsrNumber num, URV& value, PrivilegeMode pm, bool virtMo
         return false;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -1009,7 +1009,7 @@ CsRegs<URV>::readSireg4(CsrNumber num, URV& value, PrivilegeMode /*pm*/, bool vi
       return true;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -1077,7 +1077,7 @@ CsRegs<URV>::readSireg5(CsrNumber num, URV& value, PrivilegeMode /*pm*/, bool vi
       return true;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -1105,7 +1105,7 @@ CsRegs<URV>::readSireg6(CsrNumber num, URV& value, PrivilegeMode pm, bool virtMo
         return false;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -1133,7 +1133,7 @@ CsRegs<URV>::readVsireg(CsrNumber num, URV& value, PrivilegeMode, bool virtMode)
   if (imsic_ and isImsicSelect(sel))
     return imsic_->readSireg(true, guest, sel, value);
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -1155,7 +1155,7 @@ CsRegs<URV>::readVsireg2(CsrNumber num, URV& value, PrivilegeMode, bool virtMode
       return false;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -1177,7 +1177,7 @@ CsRegs<URV>::readVsireg3(CsrNumber num, URV& value, PrivilegeMode, bool virtMode
       return false;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -1199,7 +1199,7 @@ CsRegs<URV>::readVsireg4(CsrNumber num, URV& value, PrivilegeMode, bool virtMode
       return false;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -1221,7 +1221,7 @@ CsRegs<URV>::readVsireg5(CsrNumber num, URV& value, PrivilegeMode, bool virtMode
       return false;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -1243,7 +1243,7 @@ CsRegs<URV>::readVsireg6(CsrNumber num, URV& value, PrivilegeMode, bool virtMode
       return false;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3127,7 +3127,7 @@ CsRegs<URV>::writeMireg(CsrNumber num, URV value, bool record)
       return true;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3169,7 +3169,7 @@ CsRegs<URV>::writeMireg2(CsrNumber num, URV value, bool record)
       return true;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3198,7 +3198,7 @@ CsRegs<URV>::writeMireg3(CsrNumber num, URV value, bool record)
   if (unsigned ix = 0; isPmaSelect(sel, ix))
     return true;
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3228,7 +3228,7 @@ CsRegs<URV>::writeMireg4(CsrNumber num, URV value, bool record)
   if (unsigned ix = 0; isPmaSelect(sel, ix))
     return true;
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3247,7 +3247,7 @@ CsRegs<URV>::writeMireg5(CsrNumber num, URV /*value*/, bool /*record*/)
   if (unsigned ix = 0; isPmaSelect(sel, ix))
     return true;
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3266,7 +3266,7 @@ CsRegs<URV>::writeMireg6(CsrNumber num, URV /*value*/, bool /*record*/)
   if (unsigned ix = 0; isPmaSelect(sel, ix))
     return true;
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3354,7 +3354,7 @@ CsRegs<URV>::writeSireg(CsrNumber num, PrivilegeMode pm, bool virtMode, URV valu
       return true;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3446,7 +3446,7 @@ CsRegs<URV>::writeSireg2(CsrNumber num, PrivilegeMode pm, bool virtMode, URV val
       return true;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3483,7 +3483,7 @@ CsRegs<URV>::writeSireg3(CsrNumber num, PrivilegeMode pm, bool virtMode, URV val
         return false;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3539,7 +3539,7 @@ CsRegs<URV>::writeSireg4(CsrNumber num, PrivilegeMode /*pm*/, bool virtMode, URV
       return true;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3610,7 +3610,7 @@ CsRegs<URV>::writeSireg5(CsrNumber num, PrivilegeMode /*pm*/, bool virtMode, URV
       return true;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3626,7 +3626,7 @@ CsRegs<URV>::writeSireg6(CsrNumber num, PrivilegeMode, bool virtMode, URV /*val*
   if (aclic_ and isAclicSelect(sel))
     return false;
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3656,7 +3656,7 @@ CsRegs<URV>::writeVsireg(CsrNumber num, PrivilegeMode, bool virtMode, URV value,
       return true;
     }
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3668,7 +3668,7 @@ CsRegs<URV>::writeVsireg2(CsrNumber num, PrivilegeMode, bool virtMode, URV /*val
   if (not csr)
     return false;
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3680,7 +3680,7 @@ CsRegs<URV>::writeVsireg3(CsrNumber num, PrivilegeMode, bool virtMode, URV /*val
   if (not csr)
     return false;
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3692,7 +3692,7 @@ CsRegs<URV>::writeVsireg4(CsrNumber num, PrivilegeMode, bool virtMode, URV /*val
   if (not csr)
     return false;
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3704,7 +3704,7 @@ CsRegs<URV>::writeVsireg5(CsrNumber num, PrivilegeMode, bool virtMode, URV /*val
   if (not csr)
     return false;
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 
@@ -3716,7 +3716,7 @@ CsRegs<URV>::writeVsireg6(CsrNumber num, PrivilegeMode, bool virtMode, URV /*val
   if (not csr)
     return false;
 
-  return false;
+  return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
 }
 
 

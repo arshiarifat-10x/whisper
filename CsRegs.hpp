@@ -1169,6 +1169,18 @@ namespace WdRiscv
       return csr.read();
     }
 
+    /// When flag is true, access to an *ireg* CSR (mireg/sireg/vsireg, including
+    /// windows 2-6) while the corresponding *iselect* contains an unimplemented or
+    /// out-of-bounds index is a no-op: reads yield zero and writes are ignored.
+    /// When false (default), such accesses raise an illegal (or virtual) instruction
+    /// exception as recommended by the spec.
+    void enableNopIregOnOobIselect(bool flag)
+    { nopIregOnOobIselect_ = flag; }
+
+    /// Return true if *IREG access with out of bounds *ISELECT is a no-nop.
+    bool nopIregOnOobIselect() const
+    { return nopIregOnOobIselect_; }
+
   protected:
 
     /// Advance a csr number by the given amount (add amount to number).
@@ -2923,6 +2935,9 @@ namespace WdRiscv
     bool debugMode_ = false;      // True if in debug mode.
     bool virtMode_ = false;       // True if hart virtual (V) mode is on.
     bool seiPin_ = false;         // Value of software external interrupt pin.
+
+    bool nopIregOnOobIselect_ = false;  // Trap on unimplemented *iselect (spec recommended).
+
 
     std::vector<InterruptCause> mInterrupts_;
     std::vector<InterruptCause> sInterrupts_;

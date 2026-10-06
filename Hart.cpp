@@ -12389,7 +12389,7 @@ namespace WdRiscv
   void
   Hart<uint64_t>::execMret(const DecodedInst* di)
   {
-    if (privMode_ < PrivilegeMode::Machine)
+    if (privMode_ < PrivilegeMode::Machine or (debugMode_ and debugModeXretIllegal_))
       {
 	illegalInst(di);
 	return;
@@ -12484,7 +12484,7 @@ namespace WdRiscv
   void
   Hart<uint32_t>::execMret(const DecodedInst* di)
   {
-    if (privMode_ < PrivilegeMode::Machine)
+    if (privMode_ < PrivilegeMode::Machine or (debugMode_ and debugModeXretIllegal_))
       {
 	illegalInst(di);
 	return;
@@ -12570,7 +12570,7 @@ template <typename URV>
 void
 Hart<URV>::execSret(const DecodedInst* di)
 {
-  if (not isRvs())
+  if (not isRvs() or (debugMode_ and debugModeXretIllegal_))
     {
       illegalInst(di);
       return;
@@ -12710,7 +12710,7 @@ void
 Hart<URV>::execMnret(const DecodedInst* di)
 {
   if (not extensionIsEnabled(RvExtension::Smrnmi) or
-      privMode_ < PrivilegeMode::Machine)
+      privMode_ < PrivilegeMode::Machine or (debugMode_ and debugModeXretIllegal_))
     {
       illegalInst(di);
       return;
@@ -13104,14 +13104,6 @@ Hart<URV>::doCsrRead(const DecodedInst* di, CsrNumber csr, bool isWrite, URV& va
   if (csRegs_.read(csr, privMode_, value))
     return true;
 
-  // Unimplemented *iselect: spec leaves behavior unspecified. Default is to trap
-  // (below). When nop_ireg_on_oob_iselect is set, treat as a successful read of zero.
-  if (nopIregOnOobIselect_ and isIregCsr(csr))
-    {
-      value = 0;
-      return true;
-    }
-
   // Check if HS qualified (section 9.6.1 of privileged spec).
   using PM = PrivilegeMode;
   bool hsq = isRvs() and csRegs_.isReadable(csr, PM::Supervisor, false /*virtMode*/);
@@ -13177,7 +13169,7 @@ Hart<URV>::imsicTrap(const DecodedInst* di, CsrNumber csr, bool virtMode)
           bool inaccessibleSel = not TT_IMSIC::Imsic::isFileSelAccessible<URV>(sel, guestIreg);
           bool oobIselect = reserved or inaccessibleSel;
 
-          if (oobIselect and not nopIregOnOobIselect_)
+          if (oobIselect and not csRegs_.nopIregOnOobIselect())
             {
               if (reserved)
                 {
@@ -13298,7 +13290,7 @@ Hart<URV>::imsicTrap(const DecodedInst* di, CsrNumber csr, bool virtMode)
           bool validSel = (sel >= 0x80 and sel <= 0xFF) or (sel >= 0x1000 and sel <= 0x10FF);
           if (not validSel)
             {
-              if (nopIregOnOobIselect_)
+              if (csRegs_.nopIregOnOobIselect())
                 return false;  // No-op: let the subsequent *ireg access read-zero / ignore write.
               illegalInst(di);
               return true;
@@ -13406,9 +13398,6 @@ Hart<URV>::doCsrWrite(const DecodedInst* di, CsrNumber csr, URV val,
 	return;  // Cannot turn-off C-extension if PC is not word aligned.
     }
 
-  // Update integer register.
-  intRegs_.write(intReg, intRegVal);
-
   // Legalize HGATP. We do this here to avoid making CsRegs depend on VirtMem.
   if (csr == CsrNumber::HGATP)
     {
@@ -13477,10 +13466,6 @@ Hart<URV>::doCsrWrite(const DecodedInst* di, CsrNumber csr, URV val,
   auto lastVal = csRegs_.peek(csr);
   if (not csRegs_.write(csr, privMode_, val))
     {
-      // Unimplemented *iselect: default trap (below). nop_ireg_on_oob_iselect: ignore write.
-      if (nopIregOnOobIselect_ and isIregCsr(csr))
-        return;
-
       // Same HS-qualified illegal/virtual behavior as doCsrRead.
       using PM = PrivilegeMode;
       bool hsq = isRvs() and csRegs_.isReadable(csr, PM::Supervisor, false /*virtMode*/);
@@ -13491,6 +13476,10 @@ Hart<URV>::doCsrWrite(const DecodedInst* di, CsrNumber csr, URV val,
         illegalInst(di);
       return;
     }
+
+  // Update integer register.
+  intRegs_.write(intReg, intRegVal);
+
   postCsrUpdate(csr, val, lastVal);
 
   // Csr was written. If it was minstret, compensate for

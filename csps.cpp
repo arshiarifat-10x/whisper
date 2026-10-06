@@ -208,7 +208,8 @@ template <typename URV>
 void
 Hart<URV>::execMipopret(const DecodedInst* di)
 {
-  if (not isRvsmip() or not isRvsmcsps() or privMode_ < PrivilegeMode::Machine)
+  if (not isRvsmip() or not isRvsmcsps() or privMode_ < PrivilegeMode::Machine or
+      (debugMode_ and debugModeXretIllegal_))
     {
       illegalInst(di);
       return;
@@ -267,7 +268,8 @@ template <typename URV>
 void
 Hart<URV>::execSipopret(const DecodedInst* di)
 {
-  if (not isRvs() or not isRvssip() or not isRvsscsps())
+  if (not isRvs() or not isRvssip() or not isRvsscsps() or
+      (debugMode_ and debugModeXretIllegal_))
     {
       illegalInst(di);
       return;

@@ -205,14 +205,19 @@ SparseMem::getUsedBlocks(std::vector<std::pair<uint64_t, uint64_t>>& vec) const
 
 
 bool
-SparseMem::fillPage(uint64_t addr, const std::span<uint8_t> buffer)
+SparseMem::fillPage(uint64_t addr, std::span<const uint8_t> buffer)
 {
   if (((addr >> pageShift_) << pageShift_) != addr)
     return false;  // Addr is not page aligned.
 
   assert(buffer.size() >= pageSize_);
 
-  std::vector<uint8_t>& page = findOrCreatePage(getPageRank(addr));
+  uint64_t pageNum = getPageRank(addr);
+  if (initMode_ == InitMode::Zero and not hasPage(pageNum) and buffer[0] == 0 and
+      memcmp(buffer.data(), &buffer[1], pageSize_ - 1) == 0)
+    return true;  // An absent page reads as zero.
+
+  std::vector<uint8_t>& page = findOrCreatePage(pageNum);
   memcpy(page.data(), buffer.data(), pageSize_);
   return true;
 }

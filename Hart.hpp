@@ -2346,7 +2346,7 @@ namespace WdRiscv
     /// When false (default), such accesses raise an illegal (or virtual) instruction
     /// exception as recommended by the spec.
     void enableNopIregOnOobIselect(bool flag)
-    { nopIregOnOobIselect_ = flag; }
+    { csRegs_.enableNopIregOnOobIselect(flag); }
 
     /// Clear MTVAL on breakpoint exception if flag is true.
     /// Otherwise, set MTVAL to the virtual address of the instruction.
@@ -2796,6 +2796,11 @@ namespace WdRiscv
     /// a trap.
     void setDebugTrapAddress(URV addr)
     { debugTrapAddr_ = addr; }
+
+    /// Make MRET, SRET, MNRET, MIPOPRET and SIPOPRET illegal in debug mode when flag is
+    /// true. The debug spec leaves them unspecified there.
+    void enableDebugModeXretIllegal(bool flag)
+    { debugModeXretIllegal_ = flag; }
 
     /// Return true a park loop is defined for debug mode.
     bool hasDebugParkLoop() const
@@ -6967,13 +6972,13 @@ namespace WdRiscv
     bool ebreakInstDebug_ = false;   // True if debug mode entered from ebreak.
     URV debugParkLoop_ = ~URV(0);    // Jump to this address on entering debug mode.
     URV debugTrapAddr_ = ~URV(0);    // Jump to this address on exception in debug mode.
+    bool debugModeXretIllegal_ = false;
     bool enteredDebugMode_ = false;  // True if entered debug mode because of trigger or ebreak.
     bool lastDm_ = false;            // True if in debug-mode before current inst
 
     bool inDebugParkLoop_ = false;    // True if BREAKP exception goes to DPL.
 
     bool clearMtvalOnIllInst_ = false;
-    bool nopIregOnOobIselect_ = false;  // Trap on unimplemented *iselect (spec recommended).
     bool clearMtvalOnEbreak_ = false;
     bool clearMtvalOnEgs_ = false;
     bool lastEbreak_ = false;

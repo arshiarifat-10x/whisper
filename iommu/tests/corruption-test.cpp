@@ -63,7 +63,7 @@ void testPdtCorruption() {
 
     // This should trigger PDT data corruption detection
     ProcessContext pc;
-    bool result = iommu.loadProcessContext(dc, 0, 123, pc, cause, faultGpa, faultIsImplicit);
+    bool result = iommu.loadProcessContext(dc, 0, pc, cause, faultGpa, faultIsImplicit, nullptr);
 
     assert(!result);
     assert(cause == 269);  // PDT data corruption
