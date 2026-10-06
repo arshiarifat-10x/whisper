@@ -3922,7 +3922,7 @@ Hart<URV>::initiateTrap(const DecodedInst* di, bool interrupt,
     {
       if (interrupt)
 	{
-	  if (csRegs_.intTriggerHit(cause, privMode_, virtMode_, isBreakpInterruptEnabled()))
+	  if (csRegs_.intTriggerHit(cause, origMode, origVirtMode, isBreakpInterruptEnabled()))
             initiateException(ExceptionCause::BREAKP, pc_, 0, 0, di);
 	}
       else if (cause != URV(ExceptionCause::BREAKP))
