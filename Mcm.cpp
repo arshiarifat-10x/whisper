@@ -4264,7 +4264,7 @@ Mcm<URV>::ppoRule4(Hart<URV>& hart, const McmInstr& instrB) const
 	continue;
       if (instr.retireTime_ < earlyB)
 	break;
-      if (instr.di_.isFence())
+      if (instr.di_.isFence() or instr.di_.isFenceTso())
 	fences.push_back(tag);
     }
   if (fences.empty())
@@ -4444,8 +4444,10 @@ Mcm<URV>::ppoRule5(Hart<URV>& hart, const McmInstr& instrA, const McmInstr& inst
   if (not hasAcquire)
     return true;
 
-  if (instrA.di_.isAmo() and not instrA.di_.isAmocas())
-    return instrA.memOps_.size() == 2; // Fail if != 2: Incomplete AMO might finish afrer B
+  bool failedAmocas = instrA.di_.isAmocas() and instrA.isStore_;
+  if (instrA.di_.isAmo() and not failedAmocas)
+    if (instrA.memOps_.size() != 2)
+      return false; // Fail if != 2: Incomplete AMO might finish afrer B
 
   if (not instrA.complete_)
     return false; // Incomplete store might finish after B
@@ -4605,7 +4607,8 @@ Mcm<URV>::ppoRule6(Hart<URV>& hart, const McmInstr& instrA, const McmInstr& inst
 
   assert(instrA.isRetired());
 
-  if (instrA.di_.isAmo() and not instrA.di_.isAmocas())
+  bool failedAmocas = instrA.di_.isAmocas() and instrA.isStore_;
+  if (instrA.di_.isAmo() and not failedAmocas)
     if (instrA.memOps_.size() != 2)
       return false; // Fail if incomplete AMO (finishes afrer B).
 
@@ -4715,7 +4718,8 @@ Mcm<URV>::ppoRule7(const McmInstr& instrA, const McmInstr& instrB) const
   if (not aHasRc or not bHasRc)
     return true;
 
-  if (instrA.di_.isAmo() and not instrA.di_.isAmocas())
+  bool failedAmocas = instrA.di_.isAmocas() and instrA.isStore_;
+  if (instrA.di_.isAmo() and not failedAmocas)
     if (instrA.memOps_.size() != 2)
       return false; // Fail if incomplete AMO (finishes afrer B).
 
