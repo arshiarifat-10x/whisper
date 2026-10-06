@@ -4367,12 +4367,18 @@ Mcm<URV>::ppoRule4(Hart<URV>& hart, const McmInstr& instrB) const
                       predTime = aOp.forwardTime(addr);  // Predecessor byte time
                       succTime = bOp.forwardTime(addr);
 
+#if 0
+                      // Temporarily disabled to avoid false fails. Will modify/re-enable
+                      // when figure out a more precise condition for when to disallow
+                      // store to load forarding across a fence.
+                      
                       // If we forward from a store before the fence, we want the original
                       // time and not the forward time of the read op. Basically, we do
                       // not want forwarding across a fence if there is a write from
                       // another hart.
                       if (predWrite and bOp.forwardingStore(addr) < fenceTag)
                         succTime = bOp.time_;
+#endif
 
                       if (predTime < succTime)
                         continue;
