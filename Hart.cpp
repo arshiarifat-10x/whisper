@@ -2345,13 +2345,14 @@ Hart<URV>::load(const DecodedInst* di, uint64_t virtAddr, uint64_t& data)
   uint64_t gaddr2 = virtAddr;
 
   auto cause = determineLoadException(addr1, addr2, gaddr1, gaddr2, ldStSize_, hyperLs_);
+  ldStPhysAddr1_ = addr1;
+  ldStPhysAddr2_ = addr2;
+
   if (cause != ExceptionCause::NONE)
     {
       initiateLoadException(di, cause, ldStFaultAddr_, gaddr1);
       return false;
     }
-  ldStPhysAddr1_ = addr1;
-  ldStPhysAddr2_ = addr2;
 
   return readForLoad<LOAD_TYPE>(di, virtAddr, addr1, addr2, data);
 #endif
