@@ -296,43 +296,18 @@ Memory::loadBinaryFile(const std::string& fileName, uint64_t addr)
       return false;
     }
 
-  std::span<uint8_t> mappedSpan(mapped, usable);
-  size_t unmappedCount = 0;
+  uint64_t failAddr = 0;
+  bool ok = initializeBytes(addr, std::span(mapped, usable), usable, failAddr);
+  munmap(mapped, usable);
 
-  for (size_t n = 0; n < usable; ++n)
+  if (not ok)
     {
-      // Optimization: write a full page at once for page-aligned regular memory.
-      size_t remaining = usable - n;
-      if (isPageAligned(addr) and remaining >= pageSize_ and addr + pageSize_ - 1 < size_ and
-          not pmaMgr_.overlapsMemMappedRegs(addr, addr + pageSize_ - 1))
-        {
-          auto page = mappedSpan.subspan(n, pageSize_);
-          bool allZero = page[0] == 0 && memcmp(page.data(), &page[1], pageSize_ - 1) == 0;
-          if (not allZero)
-            if (not fillPage(addr, page))
-              assert(0 && "Error: fillPage failed");
-          addr += pageSize_;
-          n += pageSize_ - 1;  // loop will add 1 more
-          continue;
-        }
-
-      if (not initializeByte(addr, mappedSpan[n]))
-        {
-          if (unmappedCount == 0)
-            std::cerr << "Error: Failed to copy binary file byte at address 0x"
-                      << std::hex << addr << std::dec
-                      << ": corresponding location is not mapped\n";
-          unmappedCount++;
-          if (checkUnmappedElf_)
-            {
-              munmap(mappedSpan.data(), usable);
-              return false;
-            }
-        }
-      addr++;
+      std::cerr << "Error: Failed to copy binary file byte at address 0x"
+                << std::hex << failAddr << std::dec
+                << ": corresponding location is not mapped\n";
+      if (checkUnmappedElf_)
+        return false;
     }
-
-  munmap(mappedSpan.data(), usable);
 
   return true;
 }
@@ -379,7 +354,8 @@ Memory::loadLz4File(const std::string& fileName, uint64_t addr)
   size_t dst_size = BLOCK_SIZE;
   std::vector<uint8_t> dst(dst_size);
 
-  size_t unmappedCount = 0, num = 0;  // Unmapped addresses, byte in file.
+  bool unmapped = false;
+  uint64_t start = addr;
 
   while (src_size)
     {
@@ -391,52 +367,27 @@ Memory::loadLz4File(const std::string& fileName, uint64_t addr)
       if (LZ4F_isError(ret))
         throw std::runtime_error("LZ4F_decompress failed");
 
-      for (size_t n = 0; n < dst_bytes_written; ++n, ++addr, ++num)
-	{
-          size_t remaining = dst_bytes_written - n;
-          if (isPageAligned(addr) and remaining >= pageSize_ and addr < size_ and
-              addr + pageSize_ - 1 < size_)
-            {
-              // Optimization: If page is regular memory, write it in one shot.
+      uint64_t usable = addr < size_ ? std::min(uint64_t(dst_bytes_written), size_ - addr) : 0;
+      uint64_t failAddr = 0;
+      if (not initializeBytes(addr, std::span(dst.data(), usable), usable, failAddr) and
+          not unmapped)
+        {
+          cerr << "Error: File " << fileName << ", Byte " << (failAddr - start) << ": "
+               << " Address is not mapped: "
+               << std::hex << failAddr << std::dec << '\n';
+          if (checkUnmappedElf_)
+            return false;
+          unmapped = true;
+        }
+      addr += usable;
 
-              Pma pma;
-              if (not pmaMgr_.overlapsMemMappedRegs(addr, addr + pageSize_ - 1))
-                {
-                  uint8_t* data = &dst.at(n);
-                  bool allZero = *data == 0 && memcmp(data, data + 1, pageSize_ - 1) == 0;
-                  if (not allZero)
-                    if (not fillPage(addr, std::span(data, pageSize_)))
-                      assert(0 && "Error: Assertion failed");
-                  addr += pageSize_ - 1;
-                  n += pageSize_ - 1;
-                  num += pageSize_ - 1;
-                  continue;
-                }
-            }
-
-	  if (addr < size_)
-	    {
-	      // Speed things up by not initalizing zero bytes
-              uint8_t b = dst.at(n);
-	      if (b and not initializeByte(addr, b))
-		{
-		  if (unmappedCount == 0)
-		    cerr << "Error: File " << fileName << ", Byte " << num << ": "
-                         << " Address is not mapped: "
-                         << std::hex << addr << std::dec << '\n';
-		  unmappedCount++;
-		  if (checkUnmappedElf_)
-		    return false;
-		}
-	    }
-	  else
-	    {
-              cerr << "Error: File " << fileName << ", Byte " << num << ": "
-                   << " Address out of bounds: "
-                   << std::hex << addr << std::dec << '\n';
-              break;
-	    }
-	}
+      if (usable < dst_bytes_written)
+        {
+          cerr << "Error: File " << fileName << ", Byte " << (addr - start) << ": "
+               << " Address out of bounds: "
+               << std::hex << addr << std::dec << '\n';
+          break;
+        }
 
       src_offset = src_offset + src_bytes_read;
       src_size = src_size - src_bytes_read;
@@ -452,39 +403,34 @@ Memory::loadElfSegment(ELFIO::elfio& reader, int segIx, uint64_t& end)
   const ELFIO::segment* seg = reader.segments[segIx];
   ELFIO::Elf64_Addr paddr = seg->get_physical_address();
   ELFIO::Elf_Xword segSize = seg->get_file_size(); // Size in file.
+  ELFIO::Elf_Xword memSize = std::max(seg->get_memory_size(), segSize);
   end = 0;
   if (seg->get_type() != PT_LOAD)
     return true;
 
-  if (paddr + seg->get_memory_size() > size_)
+  if (paddr + memSize > size_)
     {
       std::cerr << "Error: End of ELF segment " << segIx << " (0x"
-                << std::hex << (paddr+segSize)
+                << std::hex << (paddr+memSize)
                 << ") is beyond end of simulated memory (0x"
                 << size_ << ")\n" << std::dec;
       if (checkUnmappedElf_)
         return false;
     }
 
-  size_t unmappedCount = 0;
-
-  // Load segment directly.
-  std::span segData(seg->get_data(), segSize);
-  for (size_t i = 0; i < segData.size(); ++i)
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  std::span segData(reinterpret_cast<const uint8_t*>(seg->get_data()), segSize);
+  uint64_t failAddr = 0;
+  if (not initializeBytes(paddr, segData, memSize, failAddr))
     {
-      if (not initializeByte(paddr + i, segData[i]))
-        {
-          if (unmappedCount == 0)
-            std::cerr << "Error: Failed to copy ELF byte at address 0x"
-                      << std::hex << (paddr + i) << std::dec
-                      << ": corresponding location is not mapped\n";
-          unmappedCount++;
-          if (checkUnmappedElf_)
-            return false;
-        }
+      std::cerr << "Error: Failed to copy ELF byte at address 0x"
+                << std::hex << failAddr << std::dec
+                << ": corresponding location is not mapped\n";
+      if (checkUnmappedElf_)
+        return false;
     }
 
-  end = paddr + uint64_t(seg->get_memory_size());
+  end = paddr + uint64_t(memSize);
   return true;
 }
 
@@ -1695,7 +1641,39 @@ Memory::initializeByte(uint64_t addr, uint8_t value)
 
 
 bool
-Memory::fillPage(uint64_t addr, const std::span<uint8_t> buffer)
+Memory::initializeBytes(uint64_t addr, std::span<const uint8_t> data, uint64_t count,
+                        uint64_t& firstFail)
+{
+  const std::vector<uint8_t> zeros(count > data.size() ? pageSize_ : 0);
+  bool ok = true;
+
+  for (uint64_t i = 0; i < count; )
+    {
+      uint64_t a = addr + i;
+      bool inData = i + pageSize_ <= data.size(), inZeros = i >= data.size();
+      if (isPageAligned(a) and count - i >= pageSize_ and (inData or inZeros) and
+          a + pageSize_ <= size_ and not pmaMgr_.overlapsMemMappedRegs(a, a + pageSize_ - 1))
+        {
+          if (not fillPage(a, inData ? data.subspan(i, pageSize_) : std::span(zeros)))
+            assert(0 && "Error: fillPage failed");
+          i += pageSize_;
+          continue;
+        }
+
+      if (not initializeByte(a, i < data.size() ? data[i] : 0) and ok)
+        {
+          firstFail = a;
+          ok = false;
+        }
+      ++i;
+    }
+
+  return ok;
+}
+
+
+bool
+Memory::fillPage(uint64_t addr, std::span<const uint8_t> buffer)
 {
   if (not isPageAligned(addr))
     return false;
@@ -1710,7 +1688,11 @@ Memory::fillPage(uint64_t addr, const std::span<uint8_t> buffer)
 #ifndef MEM_CALLBACKS
 
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-  memcpy(data_ + addr, buffer.data(), pageSize_);
+  uint8_t* page = data_ + addr;
+
+  // Skipping an unchanged page keeps an untouched page unallocated.
+  if (memcmp(page, buffer.data(), pageSize_) != 0)
+    memcpy(page, buffer.data(), pageSize_);
   return true;
 
 #else

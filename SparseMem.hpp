@@ -61,9 +61,9 @@ namespace WdRiscv
     /// used memory areas (pages) sorted in ascending order.
     void getUsedBlocks(std::vector<std::pair<uint64_t, uint64_t>>& vec) const;
 
-    /// Fill the page cotnaining the given address with the contents of the given
-    /// buffer. Buffer size must be >= pageSize_.
-    bool fillPage(uint64_t addr, std::span<uint8_t> buffer);
+    /// Fill the page at the given page-aligned address with the first pageSize_
+    /// bytes of the given buffer.
+    bool fillPage(uint64_t addr, std::span<const uint8_t> buffer);
 
     /// Set the memory initialization mode. When a new page is allocated, it is
     /// initialized according to the mode (default is intialize with all zero).
@@ -113,7 +113,7 @@ namespace WdRiscv
     { return addr >> pageShift_; }
 
     /// Return host-machine address of the target-machine page with
-    /// the given page number creating such a page (and zeroing it) if
+    /// the given page number creating such a page if
     /// it has never been accessed before.
     inline std::vector<uint8_t>& findOrCreatePage(uint64_t pageNum)
     {
@@ -143,6 +143,12 @@ namespace WdRiscv
     }
 
     void initPage(uint64_t pageNum, std::vector<uint8_t>& page);
+
+    bool hasPage(uint64_t pageNum)
+    {
+      std::lock_guard<SpinLock> lock(mapSpinLock_);
+      return pageMap_.contains(pageNum);
+    }
 
   private:
 

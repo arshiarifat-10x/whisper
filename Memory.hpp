@@ -292,7 +292,7 @@ namespace WdRiscv
 
     /// Define page fill callback. This is used to speed-up memory filling
     /// for the sparse-memory mode.
-    void defineFillPageCallback(std::function<bool(uint64_t, const std::span<uint8_t>)> callback)
+    void defineFillPageCallback(std::function<bool(uint64_t, std::span<const uint8_t>)> callback)
     { fillPageCallback_ = std::move(callback); }
 
     /// Enable tracing of memory data lines referenced by current run. A memory data line
@@ -413,9 +413,16 @@ namespace WdRiscv
     /// and external memory are written.
     bool initializeByte(uint64_t address, uint8_t value);
 
-    /// Fill the page cotnaining the given address with the contents of the given
-    /// buffer. Buffer size must be >= pageSize_.
-    bool fillPage(uint64_t addr, std::span<uint8_t> buffer);
+    /// Initialize count bytes starting at addr as initializeByte does: the given
+    /// data followed by zeros. Return true on success. Return false if a byte
+    /// could not be written, setting firstFail to the address of the first such
+    /// byte.
+    bool initializeBytes(uint64_t addr, std::span<const uint8_t> data, uint64_t count,
+                         uint64_t& firstFail);
+
+    /// Fill the page at the given page-aligned address with the first pageSize_
+    /// bytes of the given buffer.
+    bool fillPage(uint64_t addr, std::span<const uint8_t> buffer);
 
     /// Reset (to zero) all memory mapped registers.
     void resetMemoryMappedRegisters();
@@ -646,7 +653,7 @@ namespace WdRiscv
     std::function<bool(uint64_t, unsigned, uint64_t)> writeCallback_ = nullptr;
 
     /// Callback to initialize a page of memory.
-    std::function<bool(uint64_t, const std::span<uint8_t>)> fillPageCallback_ = nullptr;
+    std::function<bool(uint64_t, std::span<const uint8_t>)> fillPageCallback_ = nullptr;
 
     /// Load a file into the given vector. Throw an exception if file cannot be opened.
     static void loadFile(const std::string& filename, std::vector<uint8_t>& data);
