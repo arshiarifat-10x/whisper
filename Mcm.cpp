@@ -1058,6 +1058,9 @@ Mcm<URV>::bypassOp(Hart<URV>& hart, uint64_t time, uint64_t tag, uint64_t pa,
       if (isEnabled(PpoRule::R6))
 	result = ppoRule6(hart, *instr) and result;
 
+      if (isEnabled(PpoRule::R7))
+	result = ppoRule7(hart, *instr) and result;
+
       if (instr->di_.extension() == RvExtension::Zicbom)
         result = checkCmo(hart, *instr) and result;
     }
@@ -4264,7 +4267,7 @@ Mcm<URV>::ppoRule4(Hart<URV>& hart, const McmInstr& instrB) const
 	continue;
       if (instr.retireTime_ < earlyB)
 	break;
-      if (instr.di_.isFence())
+      if (instr.di_.isFence() or instr.di_.isFenceTso())
 	fences.push_back(tag);
     }
   if (fences.empty())
@@ -4350,7 +4353,7 @@ Mcm<URV>::ppoRule4(Hart<URV>& hart, const McmInstr& instrB) const
                 }
 
               // Successor performs before predecessor -- Allow if successor is a load
-              // and there is no store from another hart to the same cache line.
+              // and there is no sc/amo from another hart to the same cache line.
               bool fail = true;
               unsigned ohx = hartIx;  // Other hart index
               uint64_t oht = 0;  // Time of write op from other hart.
@@ -4359,20 +4362,10 @@ Mcm<URV>::ppoRule4(Hart<URV>& hart, const McmInstr& instrB) const
                   fail = false;
 
                   // Check at byte level.
-                  for (unsigned i = 0; i < aOp.size_ and not fail; ++i)
+                  for (unsigned i = 0; i < bOp.size_ and not fail; ++i)
                     {
-                      uint64_t addr = aOp.pa_ + i;
-                      if (not bOp.overlaps(addr))
-                        continue;
-                      predTime = aOp.forwardTime(addr);  // Predecessor byte time
+                      uint64_t addr = bOp.pa_ + i;
                       succTime = bOp.forwardTime(addr);
-
-                      // If we forward from a store before the fence, we want the original
-                      // time and not the forward time of the read op. Basically, we do
-                      // not want forwarding across a fence if there is a write from
-                      // another hart.
-                      if (predWrite and bOp.forwardingStore(addr) < fenceTag)
-                        succTime = bOp.time_;
 
                       if (predTime < succTime)
                         continue;
@@ -4438,8 +4431,10 @@ Mcm<URV>::ppoRule5(Hart<URV>& hart, const McmInstr& instrA, const McmInstr& inst
   if (not hasAcquire)
     return true;
 
-  if (instrA.di_.isAmo() and not instrA.di_.isAmocas())
-    return instrA.memOps_.size() == 2; // Fail if != 2: Incomplete AMO might finish afrer B
+  bool failedAmocas = instrA.di_.isAmocas() and instrA.isStore_;
+  if (instrA.di_.isAmo() and not failedAmocas)
+    if (instrA.memOps_.size() != 2)
+      return false; // Fail if != 2: Incomplete AMO might finish afrer B
 
   if (not instrA.complete_)
     return false; // Incomplete store might finish after B
@@ -4599,7 +4594,8 @@ Mcm<URV>::ppoRule6(Hart<URV>& hart, const McmInstr& instrA, const McmInstr& inst
 
   assert(instrA.isRetired());
 
-  if (instrA.di_.isAmo() and not instrA.di_.isAmocas())
+  bool failedAmocas = instrA.di_.isAmocas() and instrA.isStore_;
+  if (instrA.di_.isAmo() and not failedAmocas)
     if (instrA.memOps_.size() != 2)
       return false; // Fail if incomplete AMO (finishes afrer B).
 
@@ -4709,7 +4705,8 @@ Mcm<URV>::ppoRule7(const McmInstr& instrA, const McmInstr& instrB) const
   if (not aHasRc or not bHasRc)
     return true;
 
-  if (instrA.di_.isAmo() and not instrA.di_.isAmocas())
+  bool failedAmocas = instrA.di_.isAmocas() and instrA.isStore_;
+  if (instrA.di_.isAmo() and not failedAmocas)
     if (instrA.memOps_.size() != 2)
       return false; // Fail if incomplete AMO (finishes afrer B).
 
@@ -4725,8 +4722,8 @@ Mcm<URV>::ppoRule7(const McmInstr& instrA, const McmInstr& instrB) const
     return true;  // A finishes before B
 
   // B performs before A -- Allow if B is a load and there is no write from another hart,
-  // overlapping line of B, at time between the times of A and B.
-  if (not instrB.di_.isLoad() or instrB.di_.isVectorLoad())
+  // overlapping the line of B, at time between the times of A and B.
+  if (not instrB.di_.isLoad())
     return false;
 
   unsigned hartIx = sysMemOps_.at(instrB.memOps_.at(0)).hartIx_;
@@ -5244,10 +5241,10 @@ Mcm<URV>::ppoRule12(Hart<URV>& hart, const McmInstr& instrB) const
   for (auto ix : instrB.memOps_)
     {
       const auto& op = sysMemOps_.at(ix);
+      if (not op.isRead_)
+        continue;
       for (unsigned i = 0; i < op.size_; ++i)
 	{
-	  if (not op.isRead_)
-	    continue;
 	  uint64_t addr = op.pa_ + i;
 	  auto iter = byteMap.find(addr);
 	  if (iter != byteMap.end())

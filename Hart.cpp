@@ -124,10 +124,10 @@ Hart<URV>::Hart(unsigned hartIx, URV hartId, unsigned numHarts, Memory& memory,
   tieCsrs();
 
   // Configure MHARTID CSR.
-  bool implemented = true, shared = false;
+  bool implemented = true;
   URV mask = 0, pokeMask = 0;
 
-  csRegs_.configCsr(CsrNumber::MHARTID, implemented, hartId, mask, pokeMask, shared);
+  csRegs_.configCsr(CsrNumber::MHARTID, implemented, hartId, mask, pokeMask);
 
   // Give disassembler a way to get abi-names of CSRs.
   auto callback = [this](unsigned ix) {
@@ -1108,7 +1108,7 @@ Hart<URV>::resetVector()
         );
       }
       unsigned bytesPerReg = vecRegs_.bytesPerRegister();
-      csRegs_.configCsr(CsrNumber::VLENB, true, bytesPerReg, 0, 0, false /*shared*/);
+      csRegs_.configCsr(CsrNumber::VLENB, true, bytesPerReg, 0, 0);
       auto vstartBits = uint32_t(std::bit_width(bytesPerReg*8) - 1);  // Log2(bytesPerReg*8)
       URV vstartMask = (URV(1) << vstartBits) - 1;
       auto csr = csRegs_.findCsr(CsrNumber::VSTART);
@@ -1118,7 +1118,7 @@ Hart<URV>::resetVector()
 	    std::cerr << "Warning: Write mask of CSR VSTART changed to 0x" << std::hex
 		      << vstartMask << " to be compatible with VLEN=" << std::dec
 		      << (bytesPerReg*8) << '\n';
-	  csRegs_.configCsr(CsrNumber::VSTART, true, 0, vstartMask, vstartMask, false);
+	  csRegs_.configCsr(CsrNumber::VSTART, true, 0, vstartMask, vstartMask);
 	}
     }
 
@@ -2345,13 +2345,14 @@ Hart<URV>::load(const DecodedInst* di, uint64_t virtAddr, uint64_t& data)
   uint64_t gaddr2 = virtAddr;
 
   auto cause = determineLoadException(addr1, addr2, gaddr1, gaddr2, ldStSize_, hyperLs_);
+  ldStPhysAddr1_ = addr1;
+  ldStPhysAddr2_ = addr2;
+
   if (cause != ExceptionCause::NONE)
     {
       initiateLoadException(di, cause, ldStFaultAddr_, gaddr1);
       return false;
     }
-  ldStPhysAddr1_ = addr1;
-  ldStPhysAddr2_ = addr2;
 
   return readForLoad<LOAD_TYPE>(di, virtAddr, addr1, addr2, data);
 #endif
@@ -4553,7 +4554,7 @@ Hart<URV>::syncPmamgrToPmacfg()
         assert(0);
 
       URV cfgVal = 0;
-      if (not csRegs_.readMireg(CN::MIREG, cfgVal, false))
+      if (not csRegs_.readMireg(cfgVal, false))
         assert(0);
       
       Pma pma;
@@ -5158,19 +5159,19 @@ Hart<URV>::findCsr(std::string_view name)
 template <typename URV>
 bool
 Hart<URV>::configCsr(std::string_view name, bool implemented, URV resetValue,
-                     URV mask, URV pokeMask, bool shared)
+                     URV mask, URV pokeMask)
 {
-  return csRegs_.configCsr(name, implemented, resetValue, mask, pokeMask, shared);
+  return csRegs_.configCsr(name, implemented, resetValue, mask, pokeMask);
 }
 
 
 template <typename URV>
 bool
 Hart<URV>::configCsrByUser(std::string_view name, bool implemented, URV resetValue,
-			   URV mask, URV pokeMask, bool shared, bool isDebug, bool isHExt)
+			   URV mask, URV pokeMask, bool isDebug, bool isHExt)
 {
-  return csRegs_.configCsrByUser(name, implemented, resetValue, mask, pokeMask, shared,
-                                 isDebug, isHExt);
+  return csRegs_.configCsrByUser(name, implemented, resetValue, mask, pokeMask, isDebug,
+                                 isHExt);
 }
 
 
@@ -5195,6 +5196,9 @@ Hart<URV>::configIsa(std::string_view isa, bool updateMisa)
 
   if (updateMisa)
     {
+      // Force to 1 the reset value of the MISA CSR bit corresponding to an extension in
+      // the ISA string.
+
       Csr<URV>* csr = this->findCsr("misa");
       if (not csr)
 	return false;
@@ -5218,50 +5222,19 @@ Hart<URV>::configIsa(std::string_view isa, bool updateMisa)
 	misaReset |= URV(1) << ('V' - 'A');
 
       URV mask = 0, pokeMask = 0;
-      bool implemented = true, shared = true;
+      bool implemented = true;
 
-      if (not this->configCsr("misa", implemented, misaReset, mask, pokeMask, shared))
+      if (not this->configCsr("misa", implemented, misaReset, mask, pokeMask))
 	return false;
     }
 
-  // Make VTYPE.ALTFMT writable if extension zvfbfa, zvfofp8min, zvfwbdota16bf, zvfqwbdota8f,
-  // zvqwbdota8i, zvqwbdota16i, or zvfqwdota8f.
-  if (isa_.isEnabled(RvExtension::Zvfbfa) or isa_.isEnabled(RvExtension::Zvfofp8min)
-      or isa_.isEnabled(RvExtension::Zvfwbdota16bf) or isa_.isEnabled(RvExtension::Zvfqwbdota8f)
-      or isa_.isEnabled(RvExtension::Zvqwbdota8i) or isa_.isEnabled(RvExtension::Zvqwbdota16i)
-      or isa_.isEnabled(RvExtension::Zvfqwdota8f))
-    {
-      auto csr = csRegs_.findCsr(CsrNumber::VTYPE);
-      URV pm = csr->getPokeMask();
-      VtypeFields<URV> fields(pm);
-      fields.bits_.ALTFMT = 1;
-      csr->setPokeMask(fields.value_);
-      csr->setWriteMask(fields.value_);
-    }
-
-  // Make MIP/NIE bits corresponding to the S and H extensions read only zero if
-  // those extensions are not enabled. This can be over-ridden at run time by the
-  // user configuration.
-
-  URV rozBits = 0;
-  if (not isa_.isEnabled(RvExtension::S))
-    rozBits |= 0x222;  // SEIP/STIP/SSIP
-
-  if (not isa_.isEnabled(RvExtension::H))
-    rozBits |= 0x1444;  // SGEIP/VSEIP/VSTIP/VSSIP
-
-  if (not isa_.isEnabled(RvExtension::Sscofpmf))
-    rozBits |= 0x2000;  // LCOFIP
-
-  for (CsrNumber cn : { CsrNumber::MIP , CsrNumber::MIE } )
-    {
-      auto csr = csRegs_.findCsr(cn);
-      csr->setWriteMask(csr->getWriteMask() & ~rozBits);
-      csr->setPokeMask(csr->getPokeMask() & ~rozBits);
-    }
+  // Change the default values of the poke (implemened bits) and write masks of the CSRs
+  // based on the extensions in the isa string. The masks may later be changed by the CSR
+  // configurations in the user config file (e.g. whisper.json).
+  csRegs_.setDefaultMasks(isa_);
 
   return true;
-}
+}  
 
 
 template <typename URV>

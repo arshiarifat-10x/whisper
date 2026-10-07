@@ -898,7 +898,7 @@ Hart<URV>::printInstCsvTrace(const DecodedInst& di, FILE* out)
           if (i > 0)
             buffer.printChar(';');
           buffer.print(einfo.va_);
-          if (einfo.pa_ != einfo.va_)
+          if (einfo.pa_ != einfo.va_ and not hasTrap)
             buffer.printChar(':').print(einfo.pa_);
           if (einfo.skip_)
             buffer.printChar('m');
@@ -927,7 +927,7 @@ Hart<URV>::printInstCsvTrace(const DecodedInst& di, FILE* out)
     {
       bool store = ldStWrite_;
       buffer.print(virtDataAddr);
-      if (physDataAddr != virtDataAddr)
+      if (physDataAddr != virtDataAddr and not hasTrap)
         buffer.printChar(':').print(physDataAddr);
       if (store)
         buffer.printChar('=').print(ldStData_);

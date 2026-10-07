@@ -35,6 +35,9 @@
 namespace WdRiscv
 {
 
+  class Isa;
+
+
   /// Control and status register number.
   enum class CsrNumber : uint32_t
     {
@@ -1469,18 +1472,17 @@ namespace WdRiscv
 
     /// Configure CSR. Return true on success and false on failure.
     bool configCsr(std::string_view name, bool implemented, URV resetValue,
-                   URV mask, URV pokeMask, bool shared);
+                   URV mask, URV pokeMask);
 
     /// Configure CSR. Return true on success and false on failure. Mark non-implemented
     /// csr (implemented == false) as user-disabled so that internal code cannot enable
     /// them.
     bool configCsrByUser(std::string_view name, bool implemented, URV resetValue,
-			 URV mask, URV pokeMask, bool shared, bool isDebug,
-                         bool isHExt);
+			 URV mask, URV pokeMask, bool isDebug, bool isHExt);
 
     /// Configure CSR. Return true on success and false on failure.
     bool configCsr(CsrNumber csr, bool implemented, URV resetValue,
-                   URV mask, URV pokeMask, bool shared);
+                   URV mask, URV pokeMask);
 
     /// Configure machine mode performance counters returning true on
     /// success and false on failure. N consecutive counters starting
@@ -1911,11 +1913,6 @@ namespace WdRiscv
 		       const std::vector<uint64_t>& pokeMasks)
     { return triggers_.config(trigger, resets, masks, pokeMasks); }
 
-    /// Tie the shared CSRs in this file to the corresponding CSRs in
-    /// the target CSR file making them share the same location for
-    /// their value.
-    void tieSharedCsrsTo(CsRegs<URV>& target);
-
     /// Tie CSR values of machine mode performance counters to the
     /// elements of the given vector so that when a counter in the
     /// vector is changed the corresponding CSR value changes and
@@ -1992,29 +1989,53 @@ namespace WdRiscv
 
     bool readSeed(CsrNumber num, URV& value) const;
 
-    /// Helpers to read method.
-    bool readMireg(CsrNumber num, URV& value, bool virtMode) const;
-    bool readMireg2(CsrNumber num, URV& value, bool virtMode) const;
-    bool readMireg3(CsrNumber num, URV& value, bool virtMode) const;
-    bool readMireg4(CsrNumber num, URV& value, bool virtMode) const;
-    bool readMireg5(CsrNumber num, URV& value, bool virtMode) const;
-    bool readMireg6(CsrNumber num, URV& value, bool virtMode) const;
+    /// Helpers to read method. The value of MISLECT is passed in index.
+    bool readMireg (URV index, URV& value, bool virtMode) const;
+    bool readMireg2(URV index, URV& value, bool virtMode) const;
+    bool readMireg3(URV index, URV& value, bool virtMode) const;
+    bool readMireg4(URV index, URV& value, bool virtMode) const;
+    bool readMireg5(URV index, URV& value, bool virtMode) const;
+    bool readMireg6(URV index, URV& value, bool virtMode) const;
+
+    /// Helpers to read method. The value of MISLECT is passed in index.
+    bool readSireg (URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg2(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg3(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg4(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg5(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg6(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+
+    /// Helpers to read method. The value of MISLECT is passed in index.
+    bool readVsireg (URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg2(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg3(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg4(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg5(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg6(URV index, URV& value, PrivilegeMode, bool virtMode) const;
 
     /// Helpers to read method.
-    bool readSireg (CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readSireg2(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readSireg3(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readSireg4(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readSireg5(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readSireg6(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readMireg (URV& value, bool virtMode) const;
+    bool readMireg2(URV& value, bool virtMode) const;
+    bool readMireg3(URV& value, bool virtMode) const;
+    bool readMireg4(URV& value, bool virtMode) const;
+    bool readMireg5(URV& value, bool virtMode) const;
+    bool readMireg6(URV& value, bool virtMode) const;
 
     /// Helpers to read method.
-    bool readVsireg (CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readVsireg2(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readVsireg3(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readVsireg4(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readVsireg5(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readVsireg6(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg (URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg2(URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg3(URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg4(URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg5(URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg6(URV& value, PrivilegeMode, bool virtMode) const;
+
+    /// Helpers to read method.
+    bool readVsireg (URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg2(URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg3(URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg4(URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg5(URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg6(URV& value, PrivilegeMode, bool virtMode) const;
 
     /// Helper to write method: Mask with MIP/MIDELEG.
     bool writeSip(URV value, bool recordWr = true);
@@ -2089,7 +2110,7 @@ namespace WdRiscv
     /// Set the max number of guest interrupt count. This should be
     /// done before hypervisor mode is enable.
     void setGuestInterruptCount(unsigned value)
-    { geilen_ = value; updateGuestInterruptMasks(); }
+    { geilen_ = value; }
 
     /// Return the guest interrupt count (GEILEN).
     unsigned guestInterruptCount() const
@@ -2273,12 +2294,6 @@ namespace WdRiscv
 
     /// Enable/disable ssijt extension (jump-table CSR: sijt).
     void enableSsijt(bool flag);
-
-    /// Recompute the writability of mtvec.mode bit 1 (when isMachine=true) or
-    /// stvec.mode bit 1 (when false).  That bit is writable iff the jump-table
-    /// extension is enabled (Smijt for mtvec; Ssijt for stvec), which needs
-    /// xtvec.mode=11.
-    void updateXtvecModeMask(bool isMachine);
 
     /// Return true if Smcdeleg extension is enabled.
     bool smcdelegOn() const
@@ -2868,6 +2883,11 @@ namespace WdRiscv
     void markHighLowPair(CsrNumber high, CsrNumber low);
 
   private:
+
+    // Change the default values of the poke (implemened bits) and write masks of the CSRs
+    // based on the extensions in the isa string. The masks may later be changed by the CSR
+    // configurations in the user config file (e.g. whisper.json).
+    void setDefaultMasks(const Isa& isa);
 
     /// Tie mscontext to scontext, or untie it, according to mscontextOn_.
     void updateMscontext();

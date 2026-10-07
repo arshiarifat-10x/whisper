@@ -357,11 +357,11 @@ namespace WdRiscv
 
     /// Configure given CSR. Return true on success and false if no such CSR.
     bool configCsrByUser(std::string_view name, bool implemented, URV resetValue, URV mask,
-			 URV pokeMask, bool shared, bool isDebug, bool isHExt);
+			 URV pokeMask, bool isDebug, bool isHExt);
 
     /// Configure given CSR. Return true on success and false if no such CSR.
     bool configCsr(std::string_view name, bool implemented, URV resetValue, URV mask,
-		   URV pokeMask, bool shared);
+		   URV pokeMask);
 
     /// Define a new CSR (beyond the standard CSRs defined by the
     /// RISCV spec). Return true on success and false if name/number
@@ -2196,12 +2196,6 @@ namespace WdRiscv
     /// Return the value of the MHARTID CSR.
     URV hartId() const
     { return peekCsr(CsrNumber::MHARTID); }
-
-    /// Tie the shared CSRs in this hart to the corresponding CSRs in
-    /// the target hart making them share the same location for their
-    /// value.
-    void tieSharedCsrsTo(Hart<URV>& target)
-    { return csRegs_.tieSharedCsrsTo(target.csRegs_); }
 
     /// Record given CSR number for later reporting of CSRs modified by
     /// an instruction.
