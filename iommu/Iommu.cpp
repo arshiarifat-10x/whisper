@@ -2209,9 +2209,14 @@ Iommu::getStage2Pbmt(std::vector<PbmtInfo>* pbmtInfo, IosatpMode s1Mode)
 
       if (s1pbmt != 0)
         return;  // Stage1 has priority
+      pbmtInfo->back().pbmt = s2pbmt;
     }
-
-  pbmtInfo->back().pbmt = s2pbmt;
+  else
+    {
+      // Stage 1 is bare. Last entry is the final SPA of stage2.
+      PbmtInfo info{ .addr = walk.result(), .pbmt = s2pbmt };
+      pbmtInfo->push_back(info);
+    }
 }
 
 
