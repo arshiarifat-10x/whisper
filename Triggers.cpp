@@ -306,7 +306,7 @@ bool
 Triggers<URV>::ldStAddrTriggerHit(URV addr, unsigned size, TriggerTiming timing,
                                   bool isLoad, PrivilegeMode mode,
                                   bool virtMode, bool interruptEnabled,
-                                  URV mcontext, URV scontext, URV& hitAddr)
+                                  URV mcontext, URV scontext, URV asid, unsigned asidLen, URV& hitAddr)
 {
   // Check if we should skip tripping because we are running in machine mode and
   // interrupts are disabled.
@@ -323,7 +323,7 @@ Triggers<URV>::ldStAddrTriggerHit(URV addr, unsigned size, TriggerTiming timing,
 
       URV ha = addr;   // Hit address.
       if (not trigger.matchLdStAddr(addr, size, timing, isLoad, mode, virtMode,
-                                    mcontext, scontext, ha))
+                                    mcontext, scontext, asid, asidLen, ha))
 	continue;
 
       trigger.setLocalHit(true);
@@ -343,7 +343,7 @@ template <typename URV>
 bool
 Triggers<URV>::ldStDataTriggerHit(URV value, TriggerTiming timing, bool isLoad,
 				                          PrivilegeMode mode, bool virtMode,
-                                  bool interruptEnabled, URV mcontext, URV scontext)
+                                  bool interruptEnabled, URV mcontext, URV scontext, URV asid, unsigned asidLen)
 {
   // Check if we should skip tripping because of reentrant behavior.
   bool skip = not interruptEnabled;
@@ -358,7 +358,7 @@ Triggers<URV>::ldStDataTriggerHit(URV value, TriggerTiming timing, bool isLoad,
           continue;  // Cannot fire in machine mode.
 
       if (not trigger.matchLdStData(value, timing, isLoad, mode, virtMode,
-                                    mcontext, scontext))
+                                    mcontext, scontext, asid, asidLen))
 	continue;
 
       trigger.setLocalHit(true);
@@ -439,7 +439,7 @@ Triggers<URV>::instOpcodeTriggerHit(URV opcode, TriggerTiming timing,
 
 template <typename URV>
 bool
-Triggers<URV>::icountTriggerFired(PrivilegeMode mode, bool virtMode, bool interruptEnabled, URV mcontext, URV scontext)
+Triggers<URV>::icountTriggerFired(PrivilegeMode mode, bool virtMode, bool interruptEnabled, URV mcontext, URV scontext, URV asid, unsigned asidLen)
 {
   // Check if we should skip tripping because of reentrant behavior. 
   bool skip = not interruptEnabled;
@@ -450,7 +450,7 @@ Triggers<URV>::icountTriggerFired(PrivilegeMode mode, bool virtMode, bool interr
 
   for (auto& trig : triggers_)
     {
-      if (not trig.matchInstCount(mode, virtMode, mcontext, scontext))
+      if (not trig.matchInstCount(mode, virtMode, mcontext, scontext, asid, asidLen))
         continue;
 
       if (unsigned(trig.getAction()) <= unsigned(TriggerAction::EnterDebug))
@@ -477,7 +477,7 @@ Triggers<URV>::icountTriggerFired(PrivilegeMode mode, bool virtMode, bool interr
 template <typename URV>
 void
 Triggers<URV>::evaluateIcount(PrivilegeMode mode, bool virtMode, bool interruptEnabled,
-                              bool skipModified, URV mcontext, URV scontext)
+                              bool skipModified, URV mcontext, URV scontext, URV asid, unsigned asidLen)
 {
   // Check if we should skip tripping because of reentrant behavior. 
   bool skip = not interruptEnabled;
@@ -486,7 +486,7 @@ Triggers<URV>::evaluateIcount(PrivilegeMode mode, bool virtMode, bool interruptE
 
   for (auto& trig : triggers_)
     {
-      if (not trig.matchInstCount(mode, virtMode, mcontext, scontext))
+      if (not trig.matchInstCount(mode, virtMode, mcontext, scontext, asid, asidLen))
         continue;
 
       if (trig.isModified() and skipModified)
@@ -1050,7 +1050,7 @@ template <typename M>
 bool
 Trigger<URV>::matchLdStAddr(URV addr, unsigned size, TriggerTiming timing, bool isLoad,
                             PrivilegeMode mode, bool virtMode, URV mcontext, URV scontext,
-                            URV& hitAddr) const
+                            URV asid, unsigned asidLen, URV& hitAddr) const
 {
   const M& ctl = data1_.template mcontrol<M>();
 
@@ -1077,7 +1077,7 @@ Trigger<URV>::matchLdStAddr(URV addr, unsigned size, TriggerTiming timing, bool 
       if (not matchTextraMcontext(mcontext))
         return false;
         
-      if (not matchTextraScontext(scontext))
+      if (not matchTextraScontext(scontext, asid, asidLen))
         return false;
     }
   else if (virtMode)
@@ -1166,15 +1166,15 @@ template <typename URV>
 bool
 Trigger<URV>::matchLdStAddr(URV addr, unsigned size, TriggerTiming timing, bool isLoad,
                             PrivilegeMode mode, bool virtMode, URV mcontext, URV scontext,
-                            URV& hitAddr) const
+                            URV asid, unsigned asidLen, URV& hitAddr) const
 {
   if (not data1_.isAddrData())
     return false;  // Not an address trigger.
 
   if (data1_.isMcontrol())
-    return matchLdStAddr<decltype(data1_.mcontrol_)>(addr, size, timing, isLoad, mode, virtMode, mcontext, scontext, hitAddr);
+    return matchLdStAddr<decltype(data1_.mcontrol_)>(addr, size, timing, isLoad, mode, virtMode, mcontext, scontext, asid, asidLen, hitAddr);
 
-  return matchLdStAddr<decltype(data1_.mcontrol6_)>(addr, size, timing, isLoad, mode, virtMode, mcontext, scontext, hitAddr);
+  return matchLdStAddr<decltype(data1_.mcontrol6_)>(addr, size, timing, isLoad, mode, virtMode, mcontext, scontext, asid, asidLen, hitAddr);
 }
 
 
@@ -1182,7 +1182,7 @@ template <typename URV>
 template <typename M>
 bool
 Trigger<URV>::matchLdStData(URV value, TriggerTiming timing, bool isLoad,
-                            PrivilegeMode mode, bool virtMode, URV mcontext, URV scontext) const
+                            PrivilegeMode mode, bool virtMode, URV mcontext, URV scontext, URV asid, unsigned asidLen) const
 {
   const M& ctl = data1_.template mcontrol<M>();
 
@@ -1209,7 +1209,7 @@ Trigger<URV>::matchLdStData(URV value, TriggerTiming timing, bool isLoad,
       if (not matchTextraMcontext(mcontext))
         return false;
         
-      if (not matchTextraScontext(scontext))
+      if (not matchTextraScontext(scontext, asid, asidLen))
         return false;
       
     }
@@ -1231,15 +1231,15 @@ Trigger<URV>::matchLdStData(URV value, TriggerTiming timing, bool isLoad,
 template <typename URV>
 bool
 Trigger<URV>::matchLdStData(URV value, TriggerTiming timing, bool isLoad,
-                            PrivilegeMode mode, bool virtMode, URV mcontext, URV scontext) const
+                            PrivilegeMode mode, bool virtMode, URV mcontext, URV scontext, URV asid, unsigned asidLen) const
 {
   if (not data1_.isAddrData())
     return false;  // Not an address trigger.
   if (data1_.isMcontrol())
     return matchLdStData<decltype(data1_.mcontrol_)>(
-        value, timing, isLoad, mode, virtMode, mcontext, scontext);
+        value, timing, isLoad, mode, virtMode, mcontext, scontext, asid, asidLen);
   return matchLdStData<decltype(data1_.mcontrol6_)>(
-      value, timing, isLoad, mode, virtMode, mcontext, scontext);
+      value, timing, isLoad, mode, virtMode, mcontext, scontext, asid, asidLen);
 }
 
 
