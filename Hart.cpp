@@ -4554,7 +4554,7 @@ Hart<URV>::syncPmamgrToPmacfg()
         assert(0);
 
       URV cfgVal = 0;
-      if (not csRegs_.readMireg(CN::MIREG, cfgVal, false))
+      if (not csRegs_.readMireg(cfgVal, false))
         assert(0);
       
       Pma pma;

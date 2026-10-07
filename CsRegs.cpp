@@ -578,15 +578,13 @@ bool isAclicSelect(uint64_t sel)
 
 template <typename URV>
 bool
-CsRegs<URV>::readMireg(CsrNumber num, URV& value, bool virtMode) const
+CsRegs<URV>::readMireg(URV sel, URV& value, bool virtMode) const
 {
   value = 0;
 
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::MIREG, virtMode);
   if (not csr)
     return false;
-
-  auto sel = peek(CsrNumber::MISELECT);
 
   if (aclic_ and isAclicSelect(sel))
     {
@@ -599,7 +597,7 @@ CsRegs<URV>::readMireg(CsrNumber num, URV& value, bool virtMode) const
     {
       if (not menvcfgCde())
         return false;
-      unsigned offset = unsigned(num) - 0x40;
+      unsigned offset = unsigned(sel) - 0x40;
       auto hpmNum = unsigned(CsrNumber::MCYCLE) + offset;
       if (hpmNum == 0x41 or (hpmNum <= 0x42 and not zicntrOn_))
         return false;
@@ -634,15 +632,13 @@ CsRegs<URV>::readMireg(CsrNumber num, URV& value, bool virtMode) const
 
 template <typename URV>
 bool
-CsRegs<URV>::readMireg2(CsrNumber num, URV& value, bool virtMode) const
+CsRegs<URV>::readMireg2(URV sel, URV& value, bool virtMode) const
 {
   value = 0;
 
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::MIREG2, virtMode);
   if (not csr)
     return false;
-
-  auto sel = peek(CsrNumber::MISELECT);
 
   if (aclic_ and isAclicSelect(sel))
     {
@@ -669,15 +665,13 @@ CsRegs<URV>::readMireg2(CsrNumber num, URV& value, bool virtMode) const
 
 template <typename URV>
 bool
-CsRegs<URV>::readMireg3(CsrNumber num, URV& value, bool virtMode) const
+CsRegs<URV>::readMireg3(URV sel, URV& value, bool virtMode) const
 {
   value = 0;
 
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::MIREG3, virtMode);
   if (not csr)
     return false;
-
-  auto sel = peek(CsrNumber::MISELECT);
 
   if (aclic_ and isAclicSelect(sel))
     {
@@ -696,15 +690,13 @@ CsRegs<URV>::readMireg3(CsrNumber num, URV& value, bool virtMode) const
 
 template <typename URV>
 bool
-CsRegs<URV>::readMireg4(CsrNumber num, URV& value, bool virtMode) const
+CsRegs<URV>::readMireg4(URV sel, URV& value, bool virtMode) const
 {
   value = 0;
 
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::MIREG4, virtMode);
   if (not csr)
     return false;
-
-  auto sel = peek(CsrNumber::MISELECT);
 
   if (aclic_ and isAclicSelect(sel))
     {
@@ -723,15 +715,13 @@ CsRegs<URV>::readMireg4(CsrNumber num, URV& value, bool virtMode) const
 
 template <typename URV>
 bool
-CsRegs<URV>::readMireg5(CsrNumber num, URV& value, bool virtMode) const
+CsRegs<URV>::readMireg5(URV sel, URV& value, bool virtMode) const
 {
   value = 0;
 
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::MIREG5, virtMode);
   if (not csr)
     return false;
-
-  auto sel = peek(CsrNumber::MISELECT);
 
   if (aclic_ and isAclicSelect(sel))
     return false;
@@ -745,15 +735,13 @@ CsRegs<URV>::readMireg5(CsrNumber num, URV& value, bool virtMode) const
 
 template <typename URV>
 bool
-CsRegs<URV>::readMireg6(CsrNumber num, URV& value, bool virtMode) const
+CsRegs<URV>::readMireg6(URV sel, URV& value, bool virtMode) const
 {
   value = 0;
 
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::MIREG6, virtMode);
   if (not csr)
     return false;
-
-  auto sel = peek(CsrNumber::MISELECT);
 
   if (aclic_ and isAclicSelect(sel))
     return false;
@@ -767,14 +755,12 @@ CsRegs<URV>::readMireg6(CsrNumber num, URV& value, bool virtMode) const
 
 template <typename URV>
 bool
-CsRegs<URV>::readSireg(CsrNumber num, URV& value, PrivilegeMode pm, bool virtMode) const
+CsRegs<URV>::readSireg(URV sel, URV& value, PrivilegeMode pm, bool virtMode) const
 {
   value = 0;
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::SIREG, virtMode);
   if (not csr)
     return false;
-
-  auto sel = peek(CsrNumber::SISELECT);
 
   if (aclic_ and isAclicSelect(sel))
     {
@@ -849,15 +835,13 @@ CsRegs<URV>::readSireg(CsrNumber num, URV& value, PrivilegeMode pm, bool virtMod
 
 template <typename URV>
 bool
-CsRegs<URV>::readSireg2(CsrNumber num, URV& value, PrivilegeMode pm, bool virtMode) const
+CsRegs<URV>::readSireg2(URV sel, URV& value, PrivilegeMode pm, bool virtMode) const
 {
   value = 0;
 
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::SIREG2, virtMode);
   if (not csr)
     return false;
-
-  auto sel = peek(CsrNumber::SISELECT);
 
   if (aclic_ and isAclicSelect(sel))
     {
@@ -934,13 +918,11 @@ CsRegs<URV>::readSireg2(CsrNumber num, URV& value, PrivilegeMode pm, bool virtMo
 
 template <typename URV>
 bool
-CsRegs<URV>::readSireg3(CsrNumber num, URV& value, PrivilegeMode pm, bool virtMode) const
+CsRegs<URV>::readSireg3(URV sel, URV& value, PrivilegeMode pm, bool virtMode) const
 {
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::SIREG3, virtMode);
   if (not csr)
     return false;
-
-  auto sel = peek(CsrNumber::SISELECT);
 
   if (aclic_ && isAclicSelect(sel) && ! virtMode)
     {
@@ -965,15 +947,13 @@ CsRegs<URV>::readSireg3(CsrNumber num, URV& value, PrivilegeMode pm, bool virtMo
 
 template <typename URV>
 bool
-CsRegs<URV>::readSireg4(CsrNumber num, URV& value, PrivilegeMode /*pm*/, bool virtMode) const
+CsRegs<URV>::readSireg4(URV sel, URV& value, PrivilegeMode /*pm*/, bool virtMode) const
 {
   value = 0;
 
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::SIREG4, virtMode);
   if (not csr)
     return false;
-
-  auto sel = peek(CsrNumber::SISELECT);
 
   if (aclic_ and isAclicSelect(sel))
     {
@@ -1016,15 +996,13 @@ CsRegs<URV>::readSireg4(CsrNumber num, URV& value, PrivilegeMode /*pm*/, bool vi
 
 template <typename URV>
 bool
-CsRegs<URV>::readSireg5(CsrNumber num, URV& value, PrivilegeMode /*pm*/, bool virtMode) const
+CsRegs<URV>::readSireg5(URV sel, URV& value, PrivilegeMode /*pm*/, bool virtMode) const
 {
   value = 0;
 
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::SIREG5, virtMode);
   if (not csr)
     return false;
-
-  auto sel = peek(CsrNumber::SISELECT);
 
   if (aclic_ and isAclicSelect(sel))
     return false;
@@ -1084,15 +1062,13 @@ CsRegs<URV>::readSireg5(CsrNumber num, URV& value, PrivilegeMode /*pm*/, bool vi
 
 template <typename URV>
 bool
-CsRegs<URV>::readSireg6(CsrNumber num, URV& value, PrivilegeMode pm, bool virtMode) const
+CsRegs<URV>::readSireg6(URV sel, URV& value, PrivilegeMode pm, bool virtMode) const
 {
   value = 0;
 
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::SIREG6, virtMode);
   if (not csr)
     return false;
-
-  auto sel = peek(CsrNumber::SISELECT);
 
   if (aclic_ and isAclicSelect(sel))
     return false;
@@ -1112,17 +1088,15 @@ CsRegs<URV>::readSireg6(CsrNumber num, URV& value, PrivilegeMode pm, bool virtMo
 
 template <typename URV>
 bool
-CsRegs<URV>::readVsireg(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const
+CsRegs<URV>::readVsireg(URV sel, URV& value, PrivilegeMode, bool virtMode) const
 {
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::VSIREG, virtMode);
   if (not csr)
     return false;
 
   auto hs = peek(CsrNumber::HSTATUS);
   HstatusFields<URV> hsf(hs);
   unsigned guest = hsf.bits_.VGEIN;
-
-  auto sel = peek(CsrNumber::VSISELECT);
 
   if (smcdelegOn_ and isSmcdelegSelect(sel))
     {
@@ -1140,15 +1114,13 @@ CsRegs<URV>::readVsireg(CsrNumber num, URV& value, PrivilegeMode, bool virtMode)
 
 template <typename URV>
 bool
-CsRegs<URV>::readVsireg2(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const
+CsRegs<URV>::readVsireg2(URV sel, URV& value, PrivilegeMode, bool virtMode) const
 {
   value = 0;
 
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::VSIREG2, virtMode);
   if (not csr)
     return false;
-
-  auto sel = peek(CsrNumber::VSISELECT);
 
   if (smcdelegOn_ and isSmcdelegSelect(sel))
     {
@@ -1162,15 +1134,13 @@ CsRegs<URV>::readVsireg2(CsrNumber num, URV& value, PrivilegeMode, bool virtMode
 
 template <typename URV>
 bool
-CsRegs<URV>::readVsireg3(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const
+CsRegs<URV>::readVsireg3(URV sel, URV& value, PrivilegeMode, bool virtMode) const
 {
   value = 0;
 
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::VSIREG3, virtMode);
   if (not csr)
     return false;
-
-  auto sel = peek(CsrNumber::VSISELECT);
 
   if (smcdelegOn_ and isSmcdelegSelect(sel))
     {
@@ -1184,15 +1154,13 @@ CsRegs<URV>::readVsireg3(CsrNumber num, URV& value, PrivilegeMode, bool virtMode
 
 template <typename URV>
 bool
-CsRegs<URV>::readVsireg4(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const
+CsRegs<URV>::readVsireg4(URV sel, URV& value, PrivilegeMode, bool virtMode) const
 {
   value = 0;
 
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::VSIREG4, virtMode);
   if (not csr)
     return false;
-
-  auto sel = peek(CsrNumber::VSISELECT);
 
   if (smcdelegOn_ and isSmcdelegSelect(sel))
     {
@@ -1206,15 +1174,13 @@ CsRegs<URV>::readVsireg4(CsrNumber num, URV& value, PrivilegeMode, bool virtMode
 
 template <typename URV>
 bool
-CsRegs<URV>::readVsireg5(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const
+CsRegs<URV>::readVsireg5(URV sel, URV& value, PrivilegeMode, bool virtMode) const
 {
   value = 0;
 
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::VSIREG5, virtMode);
   if (not csr)
     return false;
-
-  auto sel = peek(CsrNumber::VSISELECT);
 
   if (smcdelegOn_ and isSmcdelegSelect(sel))
     {
@@ -1228,15 +1194,13 @@ CsRegs<URV>::readVsireg5(CsrNumber num, URV& value, PrivilegeMode, bool virtMode
 
 template <typename URV>
 bool
-CsRegs<URV>::readVsireg6(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const
+CsRegs<URV>::readVsireg6(URV sel, URV& value, PrivilegeMode, bool virtMode) const
 {
   value = 0;
 
-  auto csr = getImplementedCsr(num, virtMode);
+  auto csr = getImplementedCsr(CsrNumber::VSIREG6, virtMode);
   if (not csr)
     return false;
-
-  auto sel = peek(CsrNumber::VSISELECT);
 
   if (smcdelegOn_ and isSmcdelegSelect(sel))
     {
@@ -1245,6 +1209,271 @@ CsRegs<URV>::readVsireg6(CsrNumber num, URV& value, PrivilegeMode, bool virtMode
     }
 
   return nopIregOnOobIselect_;  // Success if no-op on out of bound iselect.
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readMireg(URV& value, bool virtMode) const
+{
+  value = 0;
+
+  auto csr = getImplementedCsr(CsrNumber::MIREG, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::MISELECT);
+  return readMireg(sel, value, virtMode);
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readMireg2(URV& value, bool virtMode) const
+{
+  value = 0;
+
+  auto csr = getImplementedCsr(CsrNumber::MIREG2, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::MISELECT);
+  return readMireg2(sel, value, virtMode);
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readMireg3(URV& value, bool virtMode) const
+{
+  value = 0;
+
+  auto csr = getImplementedCsr(CsrNumber::MIREG3, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::MISELECT);
+  return readMireg3(sel, value, virtMode);
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readMireg4(URV& value, bool virtMode) const
+{
+  value = 0;
+
+  auto csr = getImplementedCsr(CsrNumber::MIREG4, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::MISELECT);
+  return readMireg4(sel, value, virtMode);
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readMireg5(URV& value, bool virtMode) const
+{
+  value = 0;
+
+  auto csr = getImplementedCsr(CsrNumber::MIREG5, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::MISELECT);
+  return readMireg5(sel, value, virtMode);
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readMireg6(URV& value, bool virtMode) const
+{
+  value = 0;
+
+  auto csr = getImplementedCsr(CsrNumber::MIREG6, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::MISELECT);
+  return readMireg6(sel, value, virtMode);
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readSireg(URV& value, PrivilegeMode pm, bool virtMode) const
+{
+  value = 0;
+  auto csr = getImplementedCsr(CsrNumber::SIREG, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::SISELECT);
+  return readSireg(sel, value, pm, virtMode);
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readSireg2(URV& value, PrivilegeMode pm, bool virtMode) const
+{
+  value = 0;
+
+  auto csr = getImplementedCsr(CsrNumber::SIREG2, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::SISELECT);
+  return readSireg2(sel, value, pm, virtMode);
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readSireg3(URV& value, PrivilegeMode pm, bool virtMode) const
+{
+  auto csr = getImplementedCsr(CsrNumber::SIREG3, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::SISELECT);
+  return readSireg3(sel, value, pm, virtMode);
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readSireg4(URV& value, PrivilegeMode pm, bool virtMode) const
+{
+  value = 0;
+
+  auto csr = getImplementedCsr(CsrNumber::SIREG4, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::SISELECT);
+  return readSireg4(sel, value, pm, virtMode);
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readSireg5(URV& value, PrivilegeMode pm, bool virtMode) const
+{
+  value = 0;
+
+  auto csr = getImplementedCsr(CsrNumber::SIREG5, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::SISELECT);
+  return readSireg5(sel, value, pm, virtMode);
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readSireg6(URV& value, PrivilegeMode pm, bool virtMode) const
+{
+  value = 0;
+
+  auto csr = getImplementedCsr(CsrNumber::SIREG6, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::SISELECT);
+  return readSireg6(sel, value, pm, virtMode);
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readVsireg(URV& value, PrivilegeMode pm, bool virtMode) const
+{
+  auto csr = getImplementedCsr(CsrNumber::VSIREG, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::VSISELECT);
+  return readVsireg(sel, value, pm, virtMode);
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readVsireg2(URV& value, PrivilegeMode pm, bool virtMode) const
+{
+  value = 0;
+
+  auto csr = getImplementedCsr(CsrNumber::VSIREG2, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::VSISELECT);
+  return readVsireg2(sel, value, pm, virtMode);
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readVsireg3(URV& value, PrivilegeMode pm, bool virtMode) const
+{
+  value = 0;
+
+  auto csr = getImplementedCsr(CsrNumber::VSIREG3, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::VSISELECT);
+  return readVsireg3(sel, value, pm, virtMode);
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readVsireg4(URV& value, PrivilegeMode pm, bool virtMode) const
+{
+  value = 0;
+
+  auto csr = getImplementedCsr(CsrNumber::VSIREG4, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::VSISELECT);
+  return readVsireg4(sel, value, pm, virtMode);
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readVsireg5(URV& value, PrivilegeMode pm, bool virtMode) const
+{
+  value = 0;
+
+  auto csr = getImplementedCsr(CsrNumber::VSIREG5, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::VSISELECT);
+  return readVsireg5(sel, value, pm, virtMode);
+}
+
+
+template <typename URV>
+bool
+CsRegs<URV>::readVsireg6(URV& value, PrivilegeMode pm, bool virtMode) const
+{
+  value = 0;
+
+  auto csr = getImplementedCsr(CsrNumber::VSIREG6, virtMode);
+  if (not csr)
+    return false;
+
+  auto sel = peek(CsrNumber::VSISELECT);
+  return readVsireg6(sel, value, pm, virtMode);
 }
 
 
@@ -1280,43 +1509,43 @@ CsRegs<URV>::read(CsrNumber num, PrivilegeMode mode, URV& value) const
     return readSeed(num, value);
 
   if (num == CN::MIREG)
-    return readMireg(num, value, virtMode_);
+    return readMireg(value, virtMode_);
   if (num == CN::MIREG2)
-    return readMireg2(num, value, virtMode_);
+    return readMireg2(value, virtMode_);
   if (num == CN::MIREG3)
-    return readMireg3(num, value, virtMode_);
+    return readMireg3(value, virtMode_);
   if (num == CN::MIREG4)
-    return readMireg4(num, value, virtMode_);
+    return readMireg4(value, virtMode_);
   if (num == CN::MIREG5)
-    return readMireg5(num, value, virtMode_);
+    return readMireg5(value, virtMode_);
   if (num == CN::MIREG6)
-    return readMireg6(num, value, virtMode_);
+    return readMireg6(value, virtMode_);
 
   if (num == CN::SIREG)
-    return readSireg(num, value, mode, virtMode_);
+    return readSireg(value, mode, virtMode_);
   if (num == CN::SIREG2)
-    return readSireg2(num, value, mode, virtMode_);
+    return readSireg2(value, mode, virtMode_);
   if (num == CN::SIREG3)
-    return readSireg3(num, value, mode, virtMode_);
+    return readSireg3(value, mode, virtMode_);
   if (num == CN::SIREG4)
-    return readSireg4(num, value, mode, virtMode_);
+    return readSireg4(value, mode, virtMode_);
   if (num == CN::SIREG5)
-    return readSireg5(num, value, mode, virtMode_);
+    return readSireg5(value, mode, virtMode_);
   if (num == CN::SIREG6)
-    return readSireg6(num, value, mode, virtMode_);
+    return readSireg6(value, mode, virtMode_);
 
   if (num == CN::VSIREG)
-    return readVsireg(num, value, mode, virtMode_);
+    return readVsireg(value, mode, virtMode_);
   if (num == CN::VSIREG2)
-    return readVsireg2(num, value, mode, virtMode_);
+    return readVsireg2(value, mode, virtMode_);
   if (num == CN::VSIREG3)
-    return readVsireg3(num, value, mode, virtMode_);
+    return readVsireg3(value, mode, virtMode_);
   if (num == CN::VSIREG4)
-    return readVsireg4(num, value, mode, virtMode_);
+    return readVsireg4(value, mode, virtMode_);
   if (num == CN::VSIREG5)
-    return readVsireg5(num, value, mode, virtMode_);
+    return readVsireg5(value, mode, virtMode_);
   if (num == CN::VSIREG6)
-    return readVsireg6(num, value, mode, virtMode_);
+    return readVsireg6(value, mode, virtMode_);
 
   if (num == CN::SIP)
     return readSip(value);
@@ -6140,44 +6369,44 @@ CsRegs<URV>::peek(CsrNumber num, URV& value, bool virtMode) const
     }
 
   if (num == CN::MIREG)
-    return readMireg(num, value, virtMode);
+    return readMireg(value, virtMode);
   if (num == CN::MIREG2)
-    return readMireg2(num, value, virtMode);
+    return readMireg2(value, virtMode);
   if (num == CN::MIREG3)
-    return readMireg3(num, value, virtMode);
+    return readMireg3(value, virtMode);
   if (num == CN::MIREG4)
-    return readMireg4(num, value, virtMode);
+    return readMireg4(value, virtMode);
   if (num == CN::MIREG5)
-    return readMireg5(num, value, virtMode);
+    return readMireg5(value, virtMode);
   if (num == CN::MIREG6)
-    return readMireg6(num, value, virtMode);
+    return readMireg6(value, virtMode);
 
   auto pm = PrivilegeMode::Machine;
   if (num == CN::SIREG)
-    return readSireg(num, value, pm, virtMode);
+    return readSireg(value, pm, virtMode);
   if (num == CN::SIREG2)
-    return readSireg2(num, value, pm, virtMode);
+    return readSireg2(value, pm, virtMode);
   if (num == CN::SIREG3)
-    return readSireg3(num, value, pm, virtMode);
+    return readSireg3(value, pm, virtMode);
   if (num == CN::SIREG4)
-    return readSireg4(num, value, pm, virtMode);
+    return readSireg4(value, pm, virtMode);
   if (num == CN::SIREG5)
-    return readSireg5(num, value, pm, virtMode);
+    return readSireg5(value, pm, virtMode);
   if (num == CN::SIREG6)
-    return readSireg6(num, value, pm, virtMode);
+    return readSireg6(value, pm, virtMode);
 
   if (num == CN::VSIREG)
-    return readVsireg(num, value, pm, virtMode);
+    return readVsireg(value, pm, virtMode);
   if (num == CN::VSIREG2)
-    return readVsireg2(num, value, pm, virtMode);
+    return readVsireg2(value, pm, virtMode);
   if (num == CN::VSIREG3)
-    return readVsireg3(num, value, pm, virtMode);
+    return readVsireg3(value, pm, virtMode);
   if (num == CN::VSIREG4)
-    return readVsireg4(num, value, pm, virtMode);
+    return readVsireg4(value, pm, virtMode);
   if (num == CN::VSIREG5)
-    return readVsireg5(num, value, pm, virtMode);
+    return readVsireg5(value, pm, virtMode);
   if (num == CN::VSIREG6)
-    return readVsireg6(num, value, pm, virtMode);
+    return readVsireg6(value, pm, virtMode);
 
   if (num == CN::SIP)
     return readSip(value);

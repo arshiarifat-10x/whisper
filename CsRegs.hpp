@@ -1989,29 +1989,53 @@ namespace WdRiscv
 
     bool readSeed(CsrNumber num, URV& value) const;
 
-    /// Helpers to read method.
-    bool readMireg(CsrNumber num, URV& value, bool virtMode) const;
-    bool readMireg2(CsrNumber num, URV& value, bool virtMode) const;
-    bool readMireg3(CsrNumber num, URV& value, bool virtMode) const;
-    bool readMireg4(CsrNumber num, URV& value, bool virtMode) const;
-    bool readMireg5(CsrNumber num, URV& value, bool virtMode) const;
-    bool readMireg6(CsrNumber num, URV& value, bool virtMode) const;
+    /// Helpers to read method. The value of MISLECT is passed in index.
+    bool readMireg (URV index, URV& value, bool virtMode) const;
+    bool readMireg2(URV index, URV& value, bool virtMode) const;
+    bool readMireg3(URV index, URV& value, bool virtMode) const;
+    bool readMireg4(URV index, URV& value, bool virtMode) const;
+    bool readMireg5(URV index, URV& value, bool virtMode) const;
+    bool readMireg6(URV index, URV& value, bool virtMode) const;
+
+    /// Helpers to read method. The value of MISLECT is passed in index.
+    bool readSireg (URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg2(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg3(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg4(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg5(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg6(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+
+    /// Helpers to read method. The value of MISLECT is passed in index.
+    bool readVsireg (URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg2(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg3(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg4(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg5(URV index, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg6(URV index, URV& value, PrivilegeMode, bool virtMode) const;
 
     /// Helpers to read method.
-    bool readSireg (CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readSireg2(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readSireg3(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readSireg4(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readSireg5(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readSireg6(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readMireg (URV& value, bool virtMode) const;
+    bool readMireg2(URV& value, bool virtMode) const;
+    bool readMireg3(URV& value, bool virtMode) const;
+    bool readMireg4(URV& value, bool virtMode) const;
+    bool readMireg5(URV& value, bool virtMode) const;
+    bool readMireg6(URV& value, bool virtMode) const;
 
     /// Helpers to read method.
-    bool readVsireg (CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readVsireg2(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readVsireg3(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readVsireg4(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readVsireg5(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
-    bool readVsireg6(CsrNumber num, URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg (URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg2(URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg3(URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg4(URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg5(URV& value, PrivilegeMode, bool virtMode) const;
+    bool readSireg6(URV& value, PrivilegeMode, bool virtMode) const;
+
+    /// Helpers to read method.
+    bool readVsireg (URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg2(URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg3(URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg4(URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg5(URV& value, PrivilegeMode, bool virtMode) const;
+    bool readVsireg6(URV& value, PrivilegeMode, bool virtMode) const;
 
     /// Helper to write method: Mask with MIP/MIDELEG.
     bool writeSip(URV value, bool recordWr = true);
