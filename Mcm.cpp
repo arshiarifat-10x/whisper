@@ -4719,8 +4719,8 @@ Mcm<URV>::ppoRule7(const McmInstr& instrA, const McmInstr& instrB) const
     return true;  // A finishes before B
 
   // B performs before A -- Allow if B is a load and there is no write from another hart,
-  // overlapping line of B, at time between the times of A and B.
-  if (not instrB.di_.isLoad() or instrB.di_.isVectorLoad())
+  // overlapping the line of B, at time between the times of A and B.
+  if (not instrB.di_.isLoad())
     return false;
 
   unsigned hartIx = sysMemOps_.at(instrB.memOps_.at(0)).hartIx_;
@@ -5238,10 +5238,10 @@ Mcm<URV>::ppoRule12(Hart<URV>& hart, const McmInstr& instrB) const
   for (auto ix : instrB.memOps_)
     {
       const auto& op = sysMemOps_.at(ix);
+      if (not op.isRead_)
+        continue;
       for (unsigned i = 0; i < op.size_; ++i)
 	{
-	  if (not op.isRead_)
-	    continue;
 	  uint64_t addr = op.pa_ + i;
 	  auto iter = byteMap.find(addr);
 	  if (iter != byteMap.end())

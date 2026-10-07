@@ -8780,7 +8780,7 @@ CsRegs<URV>::setDefaultMasks(const Isa& isa)
       csr->setPokeMask(super? (mask | sbits) : (mask & ~sbits));
     }
 
-  bool dbltrp = isa.isEnabled(RVE::Smdbltrp);
+  bool mdbltrp = isa.isEnabled(RVE::Smdbltrp);
   bool zicfilp = isa.isEnabled(RVE::Zicfilp);
 
   // MSTATUS.MPV/GVA pokeable or read-only-zero depending on H extension.
@@ -8796,7 +8796,7 @@ CsRegs<URV>::setDefaultMasks(const Isa& isa)
 
       URV mdtBit = URV(1) << 10;
       mask = mstatush.getPokeMask();
-      mask = dbltrp ? (mask | mdtBit) : (mask & ~mdtBit);
+      mask = mdbltrp ? (mask | mdtBit) : (mask & ~mdtBit);
       mstatush.setPokeMask(mask);
 
       URV mpelp = URV(1) << 9;
@@ -8814,7 +8814,7 @@ CsRegs<URV>::setDefaultMasks(const Isa& isa)
 
       URV mdtBit = URV(1) << 42;
       mask = mstatus.getPokeMask();
-      mask = dbltrp ? (mask | mdtBit) : (mask & ~mdtBit);
+      mask = mdbltrp ? (mask | mdtBit) : (mask & ~mdtBit);
       mstatus.setPokeMask(mask);
 
       URV mpelp = URV(1) << 41;
@@ -8823,7 +8823,8 @@ CsRegs<URV>::setDefaultMasks(const Isa& isa)
       mstatus.setPokeMask(mask);
     }
 
-  // MENVCFG/HENVCFG.DTE pokeable or read-only-zero deppending  on Smdbltrp
+  // MENVCFG/HENVCFG.DTE pokeable or read-only-zero deppending  on Ssdbltrp
+  bool sdbltrp = isa.isEnabled(RVE::Ssdbltrp);
   if constexpr (sizeof(URV) == 8)
     {
       auto dteBit = URV(1) << 59;  // full 64-bit position
@@ -8831,7 +8832,7 @@ CsRegs<URV>::setDefaultMasks(const Isa& isa)
         {
           auto& cfg = regs_.at(size_t(csrn));
           URV mask = cfg.getPokeMask();
-          mask = dbltrp ? (mask | dteBit) : (mask & ~dteBit);
+          mask = sdbltrp ? (mask | dteBit) : (mask & ~dteBit);
           cfg.setPokeMask(mask);
         }
     }
@@ -8842,7 +8843,7 @@ CsRegs<URV>::setDefaultMasks(const Isa& isa)
         {
           auto& cfg = regs_.at(size_t(csrn));
           URV mask = cfg.getPokeMask();
-          mask = dbltrp ? (mask | dteBit) : (mask & ~dteBit);
+          mask = sdbltrp ? (mask | dteBit) : (mask & ~dteBit);
           cfg.setPokeMask(mask);
         }
     }
