@@ -597,7 +597,7 @@ Hart<URV>::execAmo8Op(const DecodedInst* di, Pma::Attrib attrib, OP op)
       if (storeOk and not breakpOrEnterDebugTripped())
         {
           intRegs_.write(rd, SRV(int8_t(rdVal)));
-          ldStData_ = result;
+          ldStData_ = uint8_t(result);
           ldStWrite_ = true;
         }
     }
@@ -634,7 +634,7 @@ Hart<URV>::execAmo16Op(const DecodedInst* di, Pma::Attrib attrib, OP op)
       if (storeOk and not breakpOrEnterDebugTripped())
         {
           intRegs_.write(rd, SRV(int16_t(rdVal)));
-          ldStData_ = result;
+          ldStData_ = uint16_t(result);
           ldStWrite_ = true;
         }
     }
