@@ -1058,6 +1058,9 @@ Mcm<URV>::bypassOp(Hart<URV>& hart, uint64_t time, uint64_t tag, uint64_t pa,
       if (isEnabled(PpoRule::R6))
 	result = ppoRule6(hart, *instr) and result;
 
+      if (isEnabled(PpoRule::R7))
+	result = ppoRule7(hart, *instr) and result;
+
       if (instr->di_.extension() == RvExtension::Zicbom)
         result = checkCmo(hart, *instr) and result;
     }
