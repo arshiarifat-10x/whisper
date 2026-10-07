@@ -4350,7 +4350,7 @@ Mcm<URV>::ppoRule4(Hart<URV>& hart, const McmInstr& instrB) const
                 }
 
               // Successor performs before predecessor -- Allow if successor is a load
-              // and there is no store from another hart to the same cache line.
+              // and there is no sc/amo from another hart to the same cache line.
               bool fail = true;
               unsigned ohx = hartIx;  // Other hart index
               uint64_t oht = 0;  // Time of write op from other hart.
@@ -4359,26 +4359,10 @@ Mcm<URV>::ppoRule4(Hart<URV>& hart, const McmInstr& instrB) const
                   fail = false;
 
                   // Check at byte level.
-                  for (unsigned i = 0; i < aOp.size_ and not fail; ++i)
+                  for (unsigned i = 0; i < bOp.size_ and not fail; ++i)
                     {
-                      uint64_t addr = aOp.pa_ + i;
-                      if (not bOp.overlaps(addr))
-                        continue;
-                      predTime = aOp.forwardTime(addr);  // Predecessor byte time
+                      uint64_t addr = bOp.pa_ + i;
                       succTime = bOp.forwardTime(addr);
-
-#if 0
-                      // Temporarily disabled to avoid false fails. Will modify/re-enable
-                      // when figure out a more precise condition for when to disallow
-                      // store to load forarding across a fence.
-                      
-                      // If we forward from a store before the fence, we want the original
-                      // time and not the forward time of the read op. Basically, we do
-                      // not want forwarding across a fence if there is a write from
-                      // another hart.
-                      if (predWrite and bOp.forwardingStore(addr) < fenceTag)
-                        succTime = bOp.time_;
-#endif
 
                       if (predTime < succTime)
                         continue;
