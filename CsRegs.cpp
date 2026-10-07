@@ -5661,7 +5661,7 @@ CsRegs<URV>::defineHypervisorRegs()
   csr = defineCsr("hgeip",       Csrn::HGEIP,       !mand, !imp, 0, mask, pokeMask);
   csr->setHypervisor(true);
 
-  URV henvMask = 0xfd;
+  URV henvMask = 0xed;
   if constexpr (sizeof(URV) == 8)
     henvMask = 0xf8000003000000fd;
   csr = defineCsr("henvcfg",     Csrn::HENVCFG,     !mand, !imp, 0, henvMask, henvMask);
@@ -5669,7 +5669,7 @@ CsRegs<URV>::defineHypervisorRegs()
 
   if(rv32_)
     {
-      henvMask = 0xf8000000;
+      henvMask = 0xe8000000;
       csr = defineCsr("henvcfgh",    Csrn::HENVCFGH,    !mand, !imp, 0, henvMask, henvMask);
       csr->setHypervisor(true);
       markHighLowPair(Csrn::HENVCFGH, Csrn::HENVCFG);
